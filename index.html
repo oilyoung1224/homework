@@ -20,34 +20,25 @@
 
 <style>
 /* ══════════════════════════════════════════════════════════════════
-   ⚙ 조정용 변수 — 화면 폭마다 따로 조정합니다
+   ⚙ 조정용 변수 — 여기 숫자 하나만 바꾸면 됩니다
    ══════════════════════════════════════════════════════════════════
    --gs-crop : Apps Script가 강제로 붙이는 회색 안내줄
                ("이 애플리케이션은 Google Apps Script 사용자가 만들었습니다")
                의 높이. 이만큼 iframe을 위로 밀어올려서 잘라냅니다.
 
-   ⚠ 이 배너의 실제 렌더링 높이는 "화면 폭"에 따라 달라집니다.
-     화면이 좁으면(모바일) 문장이 작게/줄바꿈되어 배너가 얕고,
-     화면이 넓으면(PC) 문장이 한 줄로 여유있게 나오며 배너가 더 큽니다.
-     그래서 모바일에 맞춘 숫자를 PC에 그대로 쓰면 못 다 잘리고,
-     반대로 PC에 맞춘 숫자를 모바일에 쓰면 앱 내용까지 잘려나갑니다.
-     → 아래처럼 폭 구간별로 각각 다른 값을 넣어야 둘 다 만족됩니다.
+   실측 결과: 모바일(안드로이드 크롬/삼성인터넷)과 PC(크롬) 모두
+   8px에서 회색 줄도 안 보이고 앱 콘텐츠도 안 잘리는 것을 확인함.
+   → 화면 폭별로 값을 나눌 필요가 없어서 단일 값으로 정리함.
 
-   • 회색 줄이 아직 조금 보이면  → 그 구간 숫자를 키우세요
-   • 앱 내용의 윗부분이 잘리면    → 그 구간 숫자를 줄이세요
-   • 학생은 거의 항상 모바일로 접속하므로, 모바일 값이 더 중요합니다
+   • 나중에 다른 기기(아이폰 사파리 등)에서 다시 잘리거나 회색 줄이
+     보이면, 이 숫자만 조정하면 됩니다.
+     - 회색 줄이 아직 조금 보이면  → 숫자를 키우세요 (예: 15px)
+     - 앱 내용의 윗부분이 잘리면    → 숫자를 줄이세요 (예: 4px)
    ══════════════════════════════════════════════════════════════════ */
 :root{
-  --gs-crop: 8px;      /* 기본값 = 모바일 (실측 2px에 여유를 더한 값) */
+  --gs-crop: 8px;
   --brand: #7A4A5E;
   --bg: #FAF4F6;
-}
-
-/* PC/태블릿 가로 폭(768px 이상)에서는 배너가 더 크게 렌더링되므로
-   별도 값을 지정한다. 오른쪽 숫자는 실측 후 확정 예정 — 우선 넉넉하게
-   잡아둔 임시값이니, PC에서 잘리는 정도를 보고 조정해야 합니다. */
-@media (min-width: 768px){
-  :root{ --gs-crop: 8px; }
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -163,6 +154,72 @@ var VIEW = 'student';
 
   var frame = document.getElementById('app-frame');
   frame.src = src;
+
+  // ── iframe 폭 강제 고정 (standalone 모드 대비 안전장치) ─────────
+  // 홈 화면 아이콘으로 실행하는 앱 모드에서는, iframe 안쪽 문서가
+  // 바깥 폭을 못 물려받고 데스크톱 기본값(약 980px)으로 레이아웃을
+  // 잡아버려 화면 전체가 축소돼 보이는 현상이 있었다.
+  // Apps Script 쪽 viewport 메타태그로 1차 대응하되, 만약을 대비해
+  // 여기서도 iframe의 실제 픽셀 폭을 화면 폭으로 명시해 둔다.
+  // (CSS의 width:100% 는 부모 기준 비율이라, 안쪽 문서가 자체적으로
+  //  더 넓은 폭을 가정하는 상황까지는 막아주지 못한다.)
+  function lockFrameWidth() {
+    var w = document.documentElement.clientWidth || window.innerWidth;
+    if (w > 0) frame.style.width = w + 'px';
+  }
+  lockFrameWidth();
+
+  // ══════════════════════════════════════════════════════════════
+  //  [임시 진단용] 원인 파악이 끝나면 이 블록 전체를 삭제할 것
+  // ══════════════════════════════════════════════════════════════
+  //  standalone(설치 앱) 모드에서 화면이 축소돼 보이는 원인을 찾기
+  //  위해, 브라우저가 실제로 계산한 각종 폭/배율 값을 화면에 띄운다.
+  //  추측 대신 실측값을 보고 판단하기 위한 장치.
+  (function showDiag() {
+    var d = document.createElement('div');
+    d.style.cssText =
+      'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
+      'background:rgba(0,0,0,.88);color:#0f0;font:11px/1.5 monospace;' +
+      'padding:8px 10px;white-space:pre;word-break:break-all;';
+
+    function isStandaloneNow() {
+      try {
+        if (window.navigator.standalone === true) return 'iOS-standalone';
+        if (window.matchMedia('(display-mode: standalone)').matches) return 'standalone';
+        if (window.matchMedia('(display-mode: fullscreen)').matches) return 'fullscreen';
+        if (window.matchMedia('(display-mode: minimal-ui)').matches) return 'minimal-ui';
+      } catch (e) {}
+      return 'browser-tab';
+    }
+
+    function render() {
+      d.textContent =
+        'mode        : ' + isStandaloneNow() + '\n' +
+        'innerWidth  : ' + window.innerWidth + '\n' +
+        'clientWidth : ' + document.documentElement.clientWidth + '\n' +
+        'screen.width: ' + screen.width + '\n' +
+        'outerWidth  : ' + window.outerWidth + '\n' +
+        'DPR         : ' + window.devicePixelRatio + '\n' +
+        'frame.style.width : ' + (frame.style.width || '(none)') + '\n' +
+        'frame.offsetWidth : ' + frame.offsetWidth + '\n' +
+        'visualViewport    : ' +
+          (window.visualViewport
+            ? window.visualViewport.width + ' (scale ' + window.visualViewport.scale + ')'
+            : 'n/a');
+    }
+
+    render();
+    document.body.appendChild(d);
+    setInterval(render, 1000);
+    d.addEventListener('click', function () { d.remove(); });  // 탭하면 사라짐
+  })();
+  // ══════════════════════════════════════════════════════════════
+
+  window.addEventListener('resize', lockFrameWidth);
+  window.addEventListener('orientationchange', function () {
+    // 회전 직후에는 아직 새 폭이 반영되지 않을 수 있어 한 박자 늦춘다
+    setTimeout(lockFrameWidth, 150);
+  });
 
   var direct = document.getElementById('boot-direct');
   if (direct) direct.href = src;
