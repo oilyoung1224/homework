@@ -169,52 +169,6 @@ var VIEW = 'student';
   }
   lockFrameWidth();
 
-  // ══════════════════════════════════════════════════════════════
-  //  [임시 진단용] 원인 파악이 끝나면 이 블록 전체를 삭제할 것
-  // ══════════════════════════════════════════════════════════════
-  //  standalone(설치 앱) 모드에서 화면이 축소돼 보이는 원인을 찾기
-  //  위해, 브라우저가 실제로 계산한 각종 폭/배율 값을 화면에 띄운다.
-  //  추측 대신 실측값을 보고 판단하기 위한 장치.
-  (function showDiag() {
-    var d = document.createElement('div');
-    d.style.cssText =
-      'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
-      'background:rgba(0,0,0,.88);color:#0f0;font:11px/1.5 monospace;' +
-      'padding:8px 10px;white-space:pre;word-break:break-all;';
-
-    function isStandaloneNow() {
-      try {
-        if (window.navigator.standalone === true) return 'iOS-standalone';
-        if (window.matchMedia('(display-mode: standalone)').matches) return 'standalone';
-        if (window.matchMedia('(display-mode: fullscreen)').matches) return 'fullscreen';
-        if (window.matchMedia('(display-mode: minimal-ui)').matches) return 'minimal-ui';
-      } catch (e) {}
-      return 'browser-tab';
-    }
-
-    function render() {
-      d.textContent =
-        'mode        : ' + isStandaloneNow() + '\n' +
-        'innerWidth  : ' + window.innerWidth + '\n' +
-        'clientWidth : ' + document.documentElement.clientWidth + '\n' +
-        'screen.width: ' + screen.width + '\n' +
-        'outerWidth  : ' + window.outerWidth + '\n' +
-        'DPR         : ' + window.devicePixelRatio + '\n' +
-        'frame.style.width : ' + (frame.style.width || '(none)') + '\n' +
-        'frame.offsetWidth : ' + frame.offsetWidth + '\n' +
-        'visualViewport    : ' +
-          (window.visualViewport
-            ? window.visualViewport.width + ' (scale ' + window.visualViewport.scale + ')'
-            : 'n/a');
-    }
-
-    render();
-    document.body.appendChild(d);
-    setInterval(render, 1000);
-    d.addEventListener('click', function () { d.remove(); });  // 탭하면 사라짐
-  })();
-  // ══════════════════════════════════════════════════════════════
-
   window.addEventListener('resize', lockFrameWidth);
   window.addEventListener('orientationchange', function () {
     // 회전 직후에는 아직 새 폭이 반영되지 않을 수 있어 한 박자 늦춘다
