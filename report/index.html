@@ -2,127 +2,2453 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
-<title>학습 리포트</title>
-
-<!-- ══ PWA 필수 3종 중 ①: 매니페스트 ══ -->
-<link rel="manifest" href="./manifest.json">
-
-<!-- ══ iOS 전용 (iOS는 매니페스트를 무시하고 아래 메타태그를 봄) ══ -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- iOS 사파리: '홈 화면에 추가'로 실행 시 주소창/상단바 없이 독립 앱처럼 열리게 함 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="학습 리포트">
-<link rel="apple-touch-icon" href="./icon-192.png">
-
-<!-- 안드로이드 상태바 색 -->
-<meta name="theme-color" content="#24374A">
-
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="숙검완료">
+<title>숙검완료</title>
 <style>
-/* ══════════════════════════════════════════════════════════════════
-   ⚙ 조정용 변수 — 화면 폭마다 따로 조정합니다
-   ══════════════════════════════════════════════════════════════════
-   --gs-crop : Apps Script가 강제로 붙이는 회색 안내줄의 높이.
-   화면 폭에 따라 배너 실제 높이가 달라지므로 구간별로 값을 나눈다.
-   자세한 이유는 index.html 쪽 주석 참고.
-   ══════════════════════════════════════════════════════════════════ */
-:root{
-  --gs-crop: 8px;      /* 기본값 = 모바일 */
-  --brand: #3E5C76;
-  --bg: #F3F3F1;
-}
-
-@media (min-width: 768px){
-  :root{ --gs-crop: 8px; }   /* PC/태블릿 — 실측 후 조정 예정 */
-}
-
+/* ── Reset & Base ── */
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;
-  -webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:#FAF4F6;min-height:100vh;color:#2E2229}
 
-/* ── 앱 화면(iframe) ────────────────────────────────────────────── */
-/* 컨테이너는 화면에 딱 맞추고 overflow:hidden 으로 잘라내는 틀 역할.
-   iframe 은 컨테이너보다 --gs-crop 만큼 더 크게 만들어 위로 밀어올린다.
-   결과적으로 구글 회색 안내줄만 화면 밖으로 밀려나 보이지 않게 된다. */
-#frame-wrap{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;background:var(--bg)}
-#app-frame{position:absolute;left:0;
-  top:calc(-1 * var(--gs-crop));
-  width:100%;
-  height:calc(100% + var(--gs-crop));
-  border:0;display:block;background:var(--bg)}
+/* ── Layout ── */
+.app{max-width:480px;margin:0 auto;padding:16px 16px 48px}
+.screen{display:none}.screen.active{display:block}
 
-/* ── 로딩 ───────────────────────────────────────────────────────── */
-#boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:var(--bg);z-index:50;transition:opacity .3s;gap:14px}
-#boot.gone{opacity:0;pointer-events:none}
-.spin{width:38px;height:38px;border:3px solid #E3E6E9;border-top-color:var(--brand);border-radius:50%;
-  animation:spin .7s linear infinite}
+/* ── Topbar ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+
+/* ── Hero ── */
+.home-hero{background:linear-gradient(135deg,#7A4A5E 0%,#563140 100%);border-radius:18px;padding:30px 20px 26px;margin-bottom:16px;color:#fff;text-align:center}
+.home-hero .icon{font-size:48px;margin-bottom:10px}
+.home-hero h1{font-size:22px;font-weight:800;margin-bottom:6px}
+.home-hero p{font-size:13px;opacity:.8}
+
+/* ── Mode grid ── */
+/* ── 첫화면: 학생 응시(주 CTA) ── */
+.home-primary-cta{background:linear-gradient(135deg,#C4657C 0%,#9A4560 100%);border-radius:18px;padding:34px 20px;text-align:center;cursor:pointer;box-shadow:0 4px 16px rgba(181,86,110,.28);transition:transform .12s,box-shadow .12s;margin-bottom:4px;-webkit-tap-highlight-color:transparent}
+.home-primary-cta:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(181,86,110,.32)}
+.home-primary-cta:active{transform:translateY(-1px)}
+.home-primary-cta .mc-icon{font-size:44px;margin-bottom:10px}
+.home-primary-cta h3{font-size:19px;font-weight:800;color:#fff;margin-bottom:5px}
+.home-primary-cta p{font-size:12.5px;color:rgba(255,255,255,.85)}
+
+/* ── 첫화면: 관리자 접근(보조 링크) ──
+   터치 목표 규격(Apple HIG 44pt / Material 48dp) 이상을 확보하기 위해
+   min-height:48px + 넉넉한 패딩을 준다. 시각적 비중은 여전히 낮게(연한 회색, 배경 없음)
+   유지하되, 실제로 누르기 쉬운 크기와 눌렀을 때의 피드백(:active 배경)은 보장한다. */
+.home-admin-link{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;background:transparent;border:none;border-radius:12px;color:#A8949C;font-size:14px;font-weight:600;padding:14px 16px;margin-top:6px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s}
+.home-admin-link:hover{background:#F2E9EC;color:#7D6B73}
+.home-admin-link:active{background:#EFE3E8;color:#5C4C54}
+
+/* ── Card ── */
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card-title{font-size:16px;font-weight:700;margin-bottom:14px;color:#2E2229}
+.card-title small{font-size:11px;font-weight:400;color:#A8949C;margin-left:6px}
+
+/* ── Buttons ── */
+.btn{display:block;width:100%;padding:13px;font-size:14px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:opacity .15s,transform .1s;text-align:center;margin-bottom:8px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:#B5566E;color:#fff}.btn-primary:hover{background:#8E3F55}
+.btn-success{background:#4F8A6B;color:#fff}.btn-success:hover{background:#3C6B52}
+.btn-danger{background:#C2453C;color:#fff}.btn-danger:hover{background:#9A342D}
+.btn-purple{background:#7A5C82;color:#fff}.btn-purple:hover{background:#5E4566}
+.btn-outline{background:#fff;color:#2E2229;border:1.5px solid #DEC9D1}.btn-outline:hover{background:#FBF6F8}
+.btn-sm{width:auto;padding:6px 14px;font-size:12px;display:inline-block;margin-bottom:0;font-weight:600}
+.btn-check{background:#B5566E;color:#fff;padding:13px;font-size:15px;font-weight:700;border-radius:10px;border:none;width:100%;cursor:pointer;margin-bottom:8px}.btn-check:hover{background:#8E3F55}
+
+/* ── Admin tabs ── */
+.tab-bar{display:flex;gap:0;background:#F2E9EC;border-radius:10px;padding:3px;margin-bottom:14px}
+.tab-btn{flex:1;padding:8px;font-size:12px;font-weight:700;border:none;border-radius:8px;cursor:pointer;background:transparent;color:#7D6B73;transition:background .15s,color .15s}
+.tab-btn.active{background:#fff;color:#B5566E;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+/* ── Badges ── */
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.badge-admin{background:#FBEAEF;color:#8E3F55}
+.badge-student{background:#E4F1EA;color:#4F8A6B}
+.badge-hw{background:#EFE9F2;color:#5E4566;font-family:monospace;letter-spacing:.5px}
+.badge-perfect{background:#FFF8E1;color:#B8860B}
+.badge-purple{background:#F1EAF3;color:#7A5C82}
+.badge-ok{background:#E4F1EA;color:#4F8A6B}
+.badge-ng{background:#FBE8E6;color:#C2453C}
+
+/* ── SMS 결과 뱃지 ── */
+.sms-ok{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#E4F1EA;color:#4F8A6B;margin-left:4px}
+.sms-ng{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#FBE8E6;color:#C2453C;margin-left:4px}
+.sms-na{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:#F2E9EC;color:#A8949C;margin-left:4px}
+
+/* ── Form ── */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:#7D6B73;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;font-size:14px;border:1.5px solid #EDE1E5;border-radius:9px;background:#fff;color:#2E2229;outline:none;transition:border-color .15s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#B5566E}
+.field textarea{resize:vertical;line-height:1.6}
+.field .hint{font-size:11px;color:#A8949C;margin-top:4px}
+
+/* ── 문항번호 태그 ── */
+.qnum-area{display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:#F9F2F5;border-radius:9px;border:1.5px solid #EDE1E5;min-height:44px;cursor:text;margin-bottom:6px}
+.qnum-tag{display:inline-flex;align-items:center;gap:4px;background:#B5566E;color:#fff;border-radius:20px;padding:3px 10px 3px 12px;font-size:13px;font-weight:600}
+.qnum-tag button{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:14px;padding:0;line-height:1;display:flex;align-items:center}
+.qnum-tag button:hover{color:#fff}
+.qnum-input{border:none;background:none;outline:none;font-size:13px;min-width:60px;flex:1;color:#2E2229;padding:3px 0}
+
+/* ── 정답 입력 행 ── */
+.ans-setup-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.q-chip{font-size:13px;font-weight:700;color:#B5566E;min-width:44px;text-align:center;background:#FBEAEF;padding:6px 4px;border-radius:7px;flex-shrink:0}
+.ans-setup-row input{flex:1;padding:9px 11px;font-size:14px;border:1.5px solid #EDE1E5;border-radius:9px;background:#fff;color:#2E2229;outline:none;transition:border-color .15s}
+.ans-setup-row input:focus{border-color:#B5566E}
+
+/* ── 시험 답안 행 ── */
+.exam-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.q-chip-exam{font-size:13px;font-weight:700;min-width:48px;text-align:center;padding:8px 4px;border-radius:8px;flex-shrink:0;transition:background .2s,color .2s}
+.q-chip-exam.neutral{background:#FBEAEF;color:#B5566E}
+.q-chip-exam.correct{background:#E4F1EA;color:#4F8A6B}
+.q-chip-exam.wrong{background:#FBE8E6;color:#C2453C}
+.exam-input{flex:1;padding:10px 11px;font-size:15px;border:2px solid #EDE1E5;border-radius:9px;background:#fff;color:#2E2229;outline:none;transition:border-color .2s,background .2s;font-weight:600}
+.exam-input:focus{border-color:#B5566E}
+.exam-input.correct{border-color:#4F8A6B;background:#EFF7F1}
+.exam-input.wrong{border-color:#C2453C;background:#FDF0EF}
+.exam-input.pending{border-color:#EDE1E5;background:#fff}
+.res-icon{font-size:18px;min-width:24px;text-align:center;flex-shrink:0}
+
+/* ── 진행 바 ── */
+.progress-wrap{background:#EDE1E5;border-radius:20px;height:8px;margin-bottom:4px;overflow:hidden}
+.progress-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,#D08A9C,#B5566E);transition:width .4s ease}
+.progress-label{font-size:12px;color:#7D6B73;text-align:right;margin-bottom:12px}
+
+/* ── 오답 박스 ── */
+.wrong-box{background:#FDF0EF;border:1.5px solid #FBE8E6;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.wrong-box-title{font-size:13px;font-weight:700;color:#C2453C;margin-bottom:6px}
+.wrong-nums{display:flex;flex-wrap:wrap;gap:6px}
+.wrong-num-chip{background:#FBE8E6;color:#C2453C;border-radius:20px;padding:3px 12px;font-size:13px;font-weight:700}
+
+/* ── 완료 화면 ── */
+.complete-hero{text-align:center;padding:28px 10px 20px}
+.complete-hero .big-icon{font-size:72px;margin-bottom:14px;animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.complete-hero h2{font-size:22px;font-weight:800;margin-bottom:6px;color:#4F8A6B}
+.complete-hero p{font-size:14px;color:#7D6B73;line-height:1.6}
+.complete-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+.cs-card{background:#F9F2F5;border-radius:10px;padding:16px;text-align:center}
+.cs-num{font-size:28px;font-weight:800;color:#B5566E;margin-bottom:2px}
+.cs-lbl{font-size:11px;color:#7D6B73}
+.sms-notice{border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;text-align:center;font-weight:600}
+/* [신규] 성장 배너 — 학생 본인에게 개선된 지표를 알려주는 배너(개선 없으면 숨김) */
+.growth-note{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7A4A5E,#563140);color:#fff;border-radius:12px;padding:13px 15px;margin-bottom:12px;box-shadow:0 4px 12px rgba(122,74,94,.24)}
+.growth-note .gn-icon{font-size:20px;flex-shrink:0}
+.growth-note .gn-text{font-size:12.5px;font-weight:700;line-height:1.45}
+.sms-notice.sent{background:#E4F1EA;color:#4F8A6B}
+.sms-notice.fail{background:#FFF8E1;color:#B8860B}
+.fireworks{pointer-events:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:998;overflow:hidden}
+
+/* ── 목록 행 공통 ── */
+.hw-row,.ct-row,.pf-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #F2E9EC}
+.hw-row:last-child,.ct-row:last-child,.pf-row:last-child{border-bottom:none}
+.hw-info,.ct-info,.pf-info{flex:1;min-width:0}
+.hw-title,.ct-name,.pf-name{font-size:14px;font-weight:700;color:#2E2229;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-meta,.ct-phone,.pf-meta{font-size:11px;color:#A8949C}
+.hw-qnums{font-size:11px;color:#7D6B73;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 기록 행 ── */
+.rec-row{padding:12px 0 12px 14px;border-bottom:1px solid #F2E9EC;display:flex;justify-content:space-between;align-items:flex-start}
+.rec-row:last-child{border-bottom:none}
+.rec-main{font-size:14px;font-weight:600;color:#2E2229;margin-bottom:2px}
+.rec-sub{font-size:11px;color:#A8949C}
+
+/* ── 학년/반 필터 (기록·만점자·학생 탭 공통) ── */
+.filter-select{width:100%;padding:9px 11px;font-size:13px;font-weight:600;border:1.5px solid #EDE1E5;border-radius:9px;background:#fff;color:#2E2229;outline:none;margin-bottom:12px;font-family:inherit;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.filter-select:focus{border-color:#B5566E}
+
+/* ── 기록 탭: 학생별 그룹(아코디언) ── */
+.rec-group{border-bottom:1px solid #F2E9EC}
+.rec-group:last-child{border-bottom:none}
+.rec-group summary{list-style:none;cursor:pointer;padding:13px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rec-group summary::-webkit-details-marker{display:none}
+.rec-group-name{font-size:14px;font-weight:700;color:#2E2229;margin-bottom:2px}
+.rec-group-stats{font-size:11px;color:#A8949C}
+.rec-group-arrow{color:#A8949C;font-size:11px;flex-shrink:0;transition:transform .15s}
+.rec-group[open] .rec-group-arrow{transform:rotate(180deg)}
+.rec-group-body{padding-bottom:4px;border-top:1px dashed #F2E9EC}
+
+/* ── 오늘 마감 기준 현황 (만점자 탭) ── */
+.dl-date-note{font-size:11px;color:#A8949C;margin-bottom:10px}
+.dl-group{border-bottom:1px solid #F2E9EC}
+.dl-group:last-child{border-bottom:none}
+.dl-group summary{list-style:none;cursor:pointer;padding:13px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dl-group summary::-webkit-details-marker{display:none}
+.dl-group-name{font-size:14px;font-weight:700;color:#2E2229;margin-bottom:5px}
+.dl-group-total{font-weight:400;color:#A8949C;font-size:11px;margin-left:4px}
+.dl-group-stats{display:flex;gap:6px;flex-wrap:wrap}
+.dl-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.dl-badge.before{background:#E4F1EA;color:#4F8A6B}
+.dl-badge.after{background:#FFF8E1;color:#B8860B}
+.dl-group-body{padding:2px 0 12px;border-top:1px dashed #F2E9EC}
+.dl-sublist{margin-top:10px}
+.dl-sublist-title{font-size:12px;font-weight:700;color:#7D6B73;margin-bottom:6px}
+.dl-name-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dl-name-chip{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;background:#F2E9EC;color:#2E2229}
+.dl-empty{font-size:12px;color:#D8C3CB;font-style:italic}
+
+/* ══════════════════════════════════════════════════════════════════
+   학생 리포트 화면 (report.html의 시각 언어를 그대로 이식, 클래스명만
+   기존 index.html 클래스(.hw-title, .hw-meta 등)와 겹치지 않도록 rep- 접두사 사용)
+   ══════════════════════════════════════════════════════════════════ */
+.rep-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.rep-who{font-size:17px;font-weight:800;color:#2E2229}
+.rep-sub{font-size:12px;color:#7D6B73;margin-top:2px}
+.rep-period{font-size:11px;background:#F2E9EC;color:#563140;padding:4px 10px;border-radius:20px;font-weight:700;white-space:nowrap;flex-shrink:0}
+
+.rep-tab-row{display:flex;gap:6px;margin-bottom:12px;background:#fff;border-radius:12px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.rep-tab-btn{flex:1;border:none;background:transparent;padding:13px 6px;font-size:12.5px;font-weight:700;color:#A8949C;border-radius:9px;cursor:pointer;font-family:inherit}
+.rep-tab-btn.active{background:#F2E9EC;color:#563140}
+
+.rep-hero-insight{background:linear-gradient(135deg,#7A4A5E 0%,#563140 100%);color:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;font-size:14.5px;font-weight:700;line-height:1.5;display:none;align-items:flex-start;gap:8px}
+.rep-hero-insight::before{content:'💡';font-size:17px;flex-shrink:0}
+
+.rep-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:2px}
+.rep-dash-cell{background:#fff;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.rep-dash-num{font-size:17px;font-weight:800;color:#7A4A5E;line-height:1.2}
+.rep-dash-lbl{font-size:9.5px;color:#7D6B73;font-weight:600;margin-top:3px;line-height:1.3}
+.rep-stat-caption{text-align:center;font-size:10.5px;color:#A8949C;margin:6px 0 10px}
+.rep-card-sub{font-size:11px;color:#A8949C;margin:-8px 0 12px}
+
+.rep-hw-item{border:1.5px solid #F2E9EC;border-radius:12px;padding:14px;margin-bottom:10px}
+.rep-hw-item:last-child{margin-bottom:0}
+.rep-hw-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.rep-hw-title{font-size:14px;font-weight:700;line-height:1.4;color:#2E2229}
+.rep-hw-badge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.rep-b-perfect{background:#F5EBDA;color:#96742A}
+.rep-b-pass{background:#E4F1EA;color:#4F8A6B}
+.rep-b-partial{background:#F7E4E6;color:#A15C52}
+.rep-b-progress{background:#F2E9EC;color:#563140}
+.rep-b-notyet{background:#F2E9EC;color:#7D6B73}
+.rep-late-tag{display:inline-block;font-size:9.5px;font-weight:700;background:#EFE9F2;color:#7A5C82;padding:1px 6px;border-radius:20px;margin-left:4px;vertical-align:middle}
+.rep-hw-meta{font-size:11.5px;color:#A8949C}
+.rep-hw-dday{display:inline-block;font-size:10.5px;font-weight:700;background:#F7E4E6;color:#A15C52;padding:2px 8px;border-radius:20px;margin-left:6px}
+.rep-hw-attempts{margin-top:8px;padding-top:8px;border-top:1px dashed #F2E9EC}
+.rep-attempt-row{display:flex;justify-content:space-between;font-size:12px;color:#46383E;padding:3px 0}
+.rep-attempt-row .rr{color:#A8949C}
+.rep-hw-effort{display:flex;align-items:flex-start;gap:8px;margin-top:8px}
+.rep-hw-effort-icon{font-size:15px;flex-shrink:0;line-height:1.5}
+.rep-hw-effort-desc{font-size:12px;color:#5C4C54;font-weight:600}
+.rep-hw-effort-interp{font-size:11px;color:#A8949C;font-style:italic;margin-top:1px;line-height:1.4}
+.rep-hw-details{margin-top:8px}
+.rep-hw-details summary{font-size:11.5px;color:#7A4A5E;font-weight:700;cursor:pointer;list-style:none;display:flex;align-items:center;gap:3px}
+.rep-hw-details summary::-webkit-details-marker{display:none}
+.rep-hw-details summary::after{content:'▾';font-size:9px;transition:transform .15s}
+.rep-hw-details[open] summary::after{transform:rotate(180deg)}
+.rep-hw-details[open] summary{margin-bottom:6px}
+
+.rep-empty-note{text-align:center;color:#A8949C;font-size:12.5px;padding:20px 0}
+.rep-foot-note{text-align:center;font-size:11px;color:#A8949C;margin-top:14px;line-height:1.6}
+
+.rep-chart-legend{display:flex;justify-content:center;gap:16px;margin-top:8px}
+.rep-legend-item{font-size:10.5px;color:#7D6B73;font-weight:600;display:flex;align-items:center;gap:5px}
+.rep-legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.rep-g-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F2E9EC;font-size:12.5px}
+.rep-g-row:last-child{border-bottom:none}
+.rep-g-row .g-month{font-weight:800;color:#563140;width:44px;flex-shrink:0}
+.rep-g-row .g-vals{flex:1;color:#5C4C54;font-size:11.5px;text-align:right}
+.rep-g-row .g-badge{margin-left:8px;font-size:10px;background:#F5EBDA;color:#96742A;padding:2px 8px;border-radius:20px;font-weight:800;flex-shrink:0}
+
+/* 학생 탭: 클릭 가능한 학생 이름 */
+.stu-name-link{cursor:pointer;text-decoration:none;color:inherit}
+.stu-name-link:hover .ct-name{color:#B5566E}
+.stu-name-link .ct-name::after{content:' ›';color:#D8C3CB;font-weight:400}
+
+/* ── 로딩 ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999}
+.overlay-box{background:#fff;border-radius:16px;padding:28px 32px;text-align:center}
+.spinner{width:36px;height:36px;border:3px solid #EDE1E5;border-top-color:#B5566E;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
-#boot .msg{font-size:13px;color:#7D6B73;font-weight:600}
-#boot .fallback{display:none;margin-top:6px}
-#boot .fallback a{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;
-  padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700}
-#boot .fallback p{font-size:12px;color:#A8949C;margin-bottom:10px;text-align:center;line-height:1.5}
 
-/* ── 하단 안내 시트 (설치 유도 / 인앱브라우저 탈출) ─────────────── */
-#sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;
-  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
-  transform:translateY(120%);transition:transform .28s ease}
-#sheet.show{transform:translateY(0)}
-.sheet-card{max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:16px 16px 14px;
-  box-shadow:0 -2px 24px rgba(46,34,41,.22);position:relative}
-.sheet-card h3{font-size:14px;font-weight:800;color:#2E2229;margin-bottom:5px;padding-right:26px;line-height:1.45}
-.sheet-card p{font-size:12px;color:#7D6B73;line-height:1.6;margin-bottom:11px}
-.sheet-steps{font-size:12.5px;font-weight:700;color:#7A5F16;background:#FFF8E1;border:1.5px solid #F3E3B3;
-  border-radius:10px;padding:9px 11px;line-height:1.55}
-.sheet-btn{display:block;width:100%;min-height:46px;background:var(--brand);color:#fff;border:none;
-  border-radius:11px;font-size:14.5px;font-weight:800;font-family:inherit;cursor:pointer;
-  -webkit-tap-highlight-color:transparent}
-.sheet-btn:active{transform:scale(.98)}
-.sheet-close{position:absolute;top:6px;right:6px;width:34px;height:34px;display:flex;align-items:center;
-  justify-content:center;background:none;border:none;font-size:16px;color:#A8949C;cursor:pointer;
-  font-family:inherit;-webkit-tap-highlight-color:transparent}
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2E2229;color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s;z-index:1001;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* ── Divider ── */
+.divider{border:none;border-top:1px solid #F2E9EC;margin:14px 0}
+
+/* ── Sticky submit ── */
+.exam-submit-bar{position:sticky;bottom:0;background:linear-gradient(to top,#FAF4F6 80%,transparent);padding:10px 0 0;z-index:10}
+
+/* ── 결과 화면 ── */
+.result-hero{text-align:center;padding:22px 10px 16px}
+.result-hero .r-icon{font-size:58px;margin-bottom:10px;animation:pop .5s ease-out}
+.result-hero h2{font-size:20px;font-weight:800;margin-bottom:5px;color:#C2453C}
+.result-hero p{font-size:13px;color:#7D6B73;line-height:1.6}
+.result-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.rs-card{background:#F9F2F5;border-radius:10px;padding:14px;text-align:center}
+.rs-num{font-size:26px;font-weight:800;margin-bottom:2px}
+.rs-lbl{font-size:11px;color:#7D6B73}
+.wrong-detail-box{background:#FDF0EF;border:1.5px solid #FBE8E6;border-radius:10px;padding:13px 14px;margin-bottom:14px}
+.wrong-detail-title{font-size:13px;font-weight:700;color:#C2453C;margin-bottom:8px}
+.wrong-q-list{display:flex;flex-wrap:wrap;gap:6px}
+.wrong-q-chip{background:#FBE8E6;color:#C2453C;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700}
+
+/* 안A 구조는 처음부터 세로 1열(카드+링크)이라 별도의 좁은화면 그리드 조정이 필요 없음 */
+
+/* ══════════════════════════════════════════════════════════════════
+   앱모드 안내 배너 (주소창 숨기기 유도)
+   - 카카오톡 인앱브라우저에서는 "기본 브라우저로 열기" 강한 카드형
+   - 일반 브라우저에서는 "홈 화면에 추가" 슬림 배너형
+   - 이미 홈화면 아이콘으로 실행 중(standalone)이면 아예 렌더링 안 함
+   ══════════════════════════════════════════════════════════════════ */
+.appmode-wrap{display:none;margin-bottom:12px}
+.appmode-wrap.show{display:block}
+
+/* 강한 카드형 (인앱브라우저 탈출 유도) */
+.am-card{background:linear-gradient(135deg,#7A4A5E 0%,#563140 100%);border-radius:14px;padding:15px 16px;color:#fff;box-shadow:0 4px 14px rgba(122,74,94,.26);position:relative}
+.am-card .am-title{font-size:13.5px;font-weight:800;line-height:1.45;padding-right:22px;margin-bottom:4px}
+.am-card .am-desc{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.82);margin-bottom:11px}
+.am-card .am-btn{display:block;width:100%;min-height:44px;background:#fff;color:#563140;border:none;border-radius:10px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.am-card .am-btn:active{transform:scale(.98)}
+
+/* 슬림 배너형 (홈 화면 추가 유도) */
+.am-slim{background:#FFF8E1;border:1.5px solid #F3E3B3;border-radius:12px;padding:12px 14px;position:relative}
+.am-slim .am-title{font-size:12.5px;font-weight:800;color:#8A6D1F;line-height:1.45;padding-right:22px;margin-bottom:3px}
+.am-slim .am-desc{font-size:11.5px;color:#9C8340;line-height:1.55}
+.am-slim .am-steps{font-size:11.5px;color:#7A5F16;font-weight:700;background:#FDF1D0;border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.5}
+
+/* 닫기 버튼 — 터치목표 확보를 위해 실제 히트영역을 32px로 잡되 시각적으로는 작게 */
+.am-close{position:absolute;top:6px;right:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:none;border:none;font-size:15px;line-height:1;cursor:pointer;opacity:.55;font-family:inherit;-webkit-tap-highlight-color:transparent}
+.am-close:active{opacity:1}
+.am-card .am-close{color:#fff}
+.am-slim .am-close{color:#8A6D1F}
 </style>
 </head>
 <body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<div class="app">
 
-<div id="frame-wrap">
-  <iframe id="app-frame" title="학습 리포트" allow="clipboard-write" referrerpolicy="no-referrer"></iframe>
+<!-- ════════ 앱모드 안내 배너 (JS가 내용을 채우고 표시 여부를 결정) ════════ -->
+<div id="appmode-wrap" class="appmode-wrap"></div>
+
+<!-- ════════ 홈 ════════ -->
+<div id="s-home" class="screen active">
+  <div class="home-hero">
+    <div class="icon">✅</div>
+    <h1>숙검완료</h1>
+    <p>숙제 검사 완료 · 자동 알림 시스템</p>
+  </div>
+  <div class="home-primary-cta" onclick="showStudentHomeworks()">
+    <div class="mc-icon">✏️</div>
+    <h3>학생 응시</h3>
+    <p>숙제 선택 후 답안 입력</p>
+  </div>
+  <button class="home-admin-link" onclick="go('s-admin-login')">🔐 관리자이신가요? 로그인</button>
 </div>
 
-<div id="boot">
-  <div class="spin"></div>
-  <div class="msg">불러오는 중…</div>
-  <div class="fallback" id="boot-fallback">
-    <p>화면이 계속 뜨지 않으면<br>아래 버튼으로 바로 열어주세요.</p>
-    <a id="boot-direct" href="#">바로 열기</a>
+<!-- ════════ 관리자 로그인 ════════ -->
+<div id="s-admin-login" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-home')">← 돌아가기</button>
+    <span class="badge badge-admin">관리자</span>
+  </div>
+  <div class="card">
+    <div class="card-title">관리자 로그인</div>
+    <div class="field">
+      <label>관리자 ID</label>
+      <input type="text" id="admin-id" placeholder="예) teacher01 (마스터는 master)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')document.getElementById('admin-pw').focus()">
+    </div>
+    <div class="field">
+      <label>비밀번호</label>
+      <input type="password" id="admin-pw" placeholder="비밀번호 입력"
+             onkeydown="if(event.key==='Enter')doAdminLogin()">
+    </div>
+    <p id="admin-err" style="font-size:12px;color:#C2453C;margin-bottom:10px;display:none">비밀번호가 틀렸습니다</p>
+    <button class="btn btn-primary" onclick="doAdminLogin()">로그인</button>
   </div>
 </div>
 
-<div id="sheet"><div class="sheet-card" id="sheet-card"></div></div>
+<!-- ════════ 관리자 메인 (탭 구조) ════════ -->
+<div id="s-admin-main" class="screen">
+  <div class="topbar">
+    <div>
+      <span class="badge badge-admin" id="admin-role-badge">관리자 대시보드</span>
+      <div style="font-size:11px;color:#A8949C;margin-top:4px" id="admin-whoami"></div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="doAdminLogout()">로그아웃</button>
+  </div>
+  <!-- 탭 바 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-hw"  onclick="switchTab('hw')">📋 숙제</button>
+    <button class="tab-btn"        id="tab-rec" onclick="switchTab('rec')">📊 기록</button>
+    <button class="tab-btn"        id="tab-pf"  onclick="switchTab('pf')">🏆 만점자</button>
+    <button class="tab-btn"        id="tab-stu" onclick="switchTab('stu')">🧑‍🎓 학생</button>
+    <button class="tab-btn"        id="tab-ct"  onclick="switchTab('ct')">📱 연락처</button>
+    <button class="tab-btn" id="tab-acc" style="display:none" onclick="switchTab('acc')">🛡 계정관리</button>
+  </div>
+
+  <!-- 탭: 숙제 -->
+  <div id="tab-content-hw">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">숙제 목록</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="go('s-hw-excel')">📊 엑셀 업로드</button>
+          <button class="btn btn-primary btn-sm" onclick="go('s-create-hw')">+ 새 숙제</button>
+        </div>
+      </div>
+      <div id="admin-hw-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+
+  <!-- 탭: 기록 -->
+  <div id="tab-content-rec" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">완료 기록</div>
+        <span id="rec-count" class="badge badge-hw">0건</span>
+      </div>
+      <select id="rec-group-filter" class="filter-select" onchange="renderAdminRecords()">
+        <option value="">전체 학년/반</option>
+      </select>
+      <div id="admin-rec-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+
+  <!-- 탭: 만점자 -->
+  <div id="tab-content-pf" style="display:none">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">📅 오늘 마감 기준 현황</div>
+      <div id="admin-today-deadline-stats"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">🏆 만점자 현황</div>
+        <span id="pf-count" class="badge badge-perfect">0명</span>
+      </div>
+      <select id="pf-group-filter" class="filter-select" onchange="renderAdminPerfect()">
+        <option value="">전체 학년/반</option>
+      </select>
+      <div id="admin-pf-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+
+  <!-- 탭: 연락처 -->
+  <div id="tab-content-ct" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">📱 학부모 연락처</div>
+        <button class="btn btn-purple btn-sm" onclick="go('s-add-contact')">+ 추가</button>
+      </div>
+      <p style="font-size:11px;color:#A8949C;margin-bottom:10px">이름이 같으면 번호 자동 업데이트 (전체 관리자 공용 명부)</p>
+      <div id="admin-ct-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+
+  <!-- 탭: 학생관리 -->
+  <div id="tab-content-stu" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">🧑‍🎓 담당 학생 <span id="stu-count" style="font-size:11px;font-weight:400;color:#A8949C">0명</span></div>
+        <button class="btn btn-success btn-sm" onclick="openAddStudent()">+ 학생 배정</button>
+      </div>
+      <p style="font-size:11px;color:#A8949C;margin-bottom:10px" id="stu-tab-hint">여기에 등록된 학생만 "학생 응시" 화면에서 내가 출제한 숙제를 볼 수 있습니다</p>
+      <select id="stu-group-filter" class="filter-select" onchange="renderAdminStudents()">
+        <option value="">전체 학년/반</option>
+      </select>
+      <div id="admin-stu-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+
+  <!-- 탭: 계정관리 (마스터 전용) -->
+  <div id="tab-content-acc" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">🛡 관리자 계정</div>
+        <button class="btn btn-purple btn-sm" onclick="go('s-add-admin')">+ 관리자 추가</button>
+      </div>
+      <p style="font-size:11px;color:#A8949C;margin-bottom:10px">마스터는 모든 관리자의 숙제·기록·학생을 열람·관리할 수 있고, 관리자 계정을 생성/삭제하거나 비밀번호를 초기화할 수 있습니다</p>
+      <div id="admin-acc-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 연락처 추가 ════════ -->
+<div id="s-add-contact" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main');switchTab('ct')">← 취소</button>
+    <span class="badge badge-purple">연락처 추가</span>
+  </div>
+  <div class="card">
+    <div class="card-title">학부모 연락처 등록</div>
+    <div class="field">
+      <label>학생 이름</label>
+      <input type="text" id="ct-name" placeholder="예) 홍길동">
+    </div>
+    <div class="field">
+      <label>학부모 전화번호</label>
+      <input type="tel" id="ct-phone" placeholder="예) 01012345678 (하이픈 없이)">
+      <p class="hint">숫자만 입력 (010으로 시작)</p>
+    </div>
+    <button class="btn btn-purple" onclick="doSaveContact()">💾 저장</button>
+  </div>
+</div>
+
+<!-- ════════ 학생 배정 ════════ -->
+<div id="s-add-student" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main');switchTab('stu')">← 취소</button>
+    <span class="badge badge-student">학생 배정</span>
+  </div>
+  <div class="card">
+    <div class="card-title">담당 학생 등록</div>
+    <div class="field">
+      <label>학생 이름</label>
+      <input type="text" id="stu-name" placeholder="예) 홍길동">
+    </div>
+    <div class="field">
+      <label>소속 (반 / 학년)</label>
+      <input type="text" id="stu-group" placeholder="예) 중등 2반">
+    </div>
+    <div class="field" id="stu-admin-select-wrap" style="display:none">
+      <label>담당 관리자</label>
+      <select id="stu-admin-select"></select>
+      <p class="hint">마스터만 담당 관리자를 지정할 수 있습니다. 지정하지 않으면 마스터 본인 담당으로 등록됩니다.</p>
+    </div>
+    <p style="font-size:11px;color:#A8949C;margin-bottom:14px">이미 등록된 이름이면 소속/담당관리자가 갱신됩니다. 이 목록에 없는 학생은 "학생 응시" 화면에서 숙제를 볼 수 없습니다.</p>
+    <button class="btn btn-success" onclick="doSaveStudent()">💾 저장</button>
+  </div>
+</div>
+
+<!-- ════════ 학생 리포트 (관리자 대시보드 · 학생 탭에서 이름 클릭 시) ════════ -->
+<div id="s-student-report" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main');switchTab('stu')">← 목록으로</button>
+    <span class="badge badge-student">학생 리포트</span>
+  </div>
+
+  <div id="rep-loading" class="card" style="text-align:center;padding:30px 0">
+    <p style="font-size:13px;color:#A8949C">로딩 중...</p>
+  </div>
+
+  <div id="rep-body" style="display:none">
+    <div class="rep-top">
+      <div>
+        <div class="rep-who" id="rep-name"></div>
+        <div class="rep-sub" id="rep-sub"></div>
+      </div>
+      <div class="rep-period" id="rep-period"></div>
+    </div>
+
+    <div class="rep-tab-row">
+      <button class="rep-tab-btn active" id="rep-tab-recent" onclick="switchReportPanel('recent')">최근 14일</button>
+      <button class="rep-tab-btn" id="rep-tab-growth" onclick="switchReportPanel('growth')">📈 성장 히스토리</button>
+    </div>
+
+    <div id="rep-panel-recent">
+      <div class="rep-hero-insight" id="rep-insight"></div>
+      <div class="rep-dash-grid">
+        <div class="rep-dash-cell"><div class="rep-dash-num" id="rep-k-attempted"></div><div class="rep-dash-lbl">응시/배정 숙제</div></div>
+        <div class="rep-dash-cell"><div class="rep-dash-num" id="rep-k-rate"></div><div class="rep-dash-lbl">정답률(최고기록)</div></div>
+        <div class="rep-dash-cell"><div class="rep-dash-num" id="rep-k-perfect"></div><div class="rep-dash-lbl">만점 횟수</div></div>
+      </div>
+      <div class="rep-stat-caption" id="rep-substats"></div>
+      <div class="rep-stat-caption" id="rep-rate-caption"></div>
+
+      <div class="card">
+        <div class="card-title">📋 숙제별 현황</div>
+        <div id="rep-hw-list"></div>
+      </div>
+    </div>
+
+    <div id="rep-panel-growth" style="display:none">
+      <div class="rep-hero-insight" id="rep-g-insight"></div>
+      <div class="card">
+        <div class="card-title">📈 마감 전 착수율 · 정답률 추이</div>
+        <div class="rep-card-sub" id="rep-g-sub"></div>
+        <div id="rep-g-chart"></div>
+        <div class="rep-chart-legend" id="rep-g-legend">
+          <span class="rep-legend-item"><span class="rep-legend-dot" style="background:#7A4A5E"></span>마감 전 착수율</span>
+          <span class="rep-legend-item"><span class="rep-legend-dot" style="background:#96742A"></span>정답률(최고기록)</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🗂 시점별 요약 기록</div>
+        <div id="rep-g-list"></div>
+      </div>
+    </div>
+
+    <div class="rep-foot-note" id="rep-foot"></div>
+  </div>
+</div>
+
+<!-- ════════ 관리자 계정 추가 (마스터 전용) ════════ -->
+<div id="s-add-admin" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main');switchTab('acc')">← 취소</button>
+    <span class="badge badge-purple">관리자 추가</span>
+  </div>
+  <div class="card">
+    <div class="card-title">관리자 계정 생성</div>
+    <div class="field">
+      <label>관리자 ID</label>
+      <input type="text" id="acc-id" placeholder="예) teacher01" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>초기 비밀번호</label>
+      <input type="text" id="acc-pw" placeholder="예) 1234abcd" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="acc-name" placeholder="예) 김선생">
+    </div>
+    <div class="field">
+      <label>권한</label>
+      <select id="acc-role">
+        <option value="ADMIN">관리자 (본인 학생·숙제만 관리)</option>
+        <option value="MASTER">마스터 (전체 관리 권한)</option>
+      </select>
+    </div>
+    <button class="btn btn-purple" onclick="doCreateAdmin()">💾 생성</button>
+  </div>
+</div>
+
+<!-- ════════ 숙제 만들기 STEP1 ════════ -->
+<div id="s-create-hw" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main')">← 취소</button>
+    <span class="badge badge-admin">새 숙제 만들기</span>
+  </div>
+  <div class="card">
+    <div class="card-title">① 숙제 제목</div>
+    <div class="field">
+      <label>숙제 제목</label>
+      <input type="text" id="hw-title" placeholder="예) 3월 1주차 교재 p.32">
+    </div>
+    <hr class="divider">
+    <div class="card-title">② 문항 번호 <small>Enter 또는 쉼표(,)로 추가</small></div>
+    <div class="qnum-area" id="qnum-tags" onclick="document.getElementById('qnum-inp').focus()">
+      <input type="text" id="qnum-inp" class="qnum-input" placeholder="예: 3, 7, 15, 22"
+             onkeydown="handleQnumKey(event)" oninput="handleQnumInput(event)">
+    </div>
+    <p id="qnum-error" style="font-size:12px;color:#C2453C;margin-bottom:10px;display:none"></p>
+    <p style="font-size:11px;color:#A8949C;margin-bottom:14px">숫자 입력 후 Enter. 쉼표로 여러 개 한 번에 추가. 자동 오름차순 정렬.</p>
+    <button class="btn btn-primary" onclick="goToAnswerInput()">정답 입력하기 →</button>
+  </div>
+</div>
+
+<!-- ════════ 숙제 만들기 STEP2 ════════ -->
+<div id="s-answer-setup" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-create-hw')">← 이전</button>
+    <span class="badge badge-admin">정답 입력</span>
+  </div>
+  <div class="card">
+    <div class="card-title" id="setup-header">정답 입력</div>
+    <div id="setup-ans-area"></div>
+
+    <hr class="divider">
+    <div class="card-title">③ 제출 마감일시 <small>(선택 — 입력 시 마감시각 기준 1분 뒤 통과/미통과/미제출 문자 자동발송)</small></div>
+    <div class="field">
+      <label>마감일시</label>
+      <input type="datetime-local" id="hw-deadline">
+    </div>
+
+    <hr class="divider">
+    <div class="card-title">④ 제출 대상 학생 <small>(한 줄에 한 명씩 — 마감 시 미제출자 판별에 사용)</small></div>
+    <div class="field">
+      <label>대상 학생 명단</label>
+      <textarea id="hw-targets" rows="4" placeholder="예)&#10;홍길동&#10;김철수&#10;이영희&#10;&#10;담당 학생 전체에게 공개하려면 아래 한 줄에 '전체'라고만 입력"></textarea>
+      <p class="hint">⚠ 비워두면 저장되지 않습니다. 특정 학생에게만 보이게 하려면 이름을, 담당 학생 전체에게 공개하려면 이 칸에 "전체"라고만 입력해주세요.</p>
+    </div>
+
+    <hr class="divider">
+    <button class="btn btn-success" onclick="doSaveHomework()">💾 숙제 저장</button>
+  </div>
+</div>
+
+<!-- ════════ 숙제 만들기: 엑셀 업로드 ════════ -->
+<div id="s-hw-excel" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-admin-main')">← 취소</button>
+    <span class="badge badge-admin">엑셀로 일괄 출제</span>
+  </div>
+  <div class="card">
+    <div class="card-title">엑셀 파일로 숙제 등록</div>
+    <p style="font-size:12px;color:#7D6B73;line-height:1.6;margin-bottom:12px">
+      첫 번째 줄은 <b>제목, 문항번호, 정답, 마감일시, 대상학생</b> 헤더로 시작해야 합니다.<br>
+      두 번째 줄부터 <b>한 줄 = 숙제 1개</b>로 인식하며, 여러 줄을 넣으면 여러 숙제를 한 번에 출제합니다.
+    </p>
+    <div class="field">
+      <label>양식 안내</label>
+      <div style="font-size:11px;color:#7D6B73;background:#F9F2F5;border:1.5px solid #EDE1E5;border-radius:9px;padding:10px 12px;line-height:1.8">
+        · 제목 : 예) 3월 1주차 교재 p.32<br>
+        · 문항번호 : 콤마로 구분, 예) 1,3,5,7<br>
+        · 정답 : 문항번호와 같은 개수, <b>|</b> 로만 구분 (콤마는 정답 안에 포함 가능), 예) ①|②|③|④ 또는 1,3|2|4<br>
+        · 마감일시(선택) : 예) 2026-07-10 18:00 (비우면 마감 없음 = 마감문자 발송 안 함)<br>
+        · 대상학생(필수) : 콤마로 구분, 예) 홍길동,김철수 / 담당 학생 전체에게 공개하려면 <b>전체</b>라고 입력 (⚠ 비우면 해당 행은 저장되지 않습니다)
+      </div>
+    </div>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:14px" onclick="downloadExcelTemplate()">⬇ 샘플 양식 다운로드(.xlsx)</button>
+    <div class="field">
+      <label>엑셀 파일 선택</label>
+      <input type="file" id="hw-excel-file" accept=".xlsx,.xls,.csv" onchange="handleExcelFile(event)">
+    </div>
+    <div id="excel-preview" style="display:none">
+      <hr class="divider">
+      <div class="card-title" style="font-size:14px">미리보기 <small id="excel-preview-count"></small></div>
+      <div id="excel-preview-list"></div>
+      <p id="excel-preview-error" style="font-size:12px;color:#C2453C;margin:8px 0;display:none"></p>
+      <button class="btn btn-success" id="excel-upload-btn" onclick="submitExcelHomeworks()">💾 위 내용대로 일괄 출제</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 학생: 이름 확인 ════════ -->
+<div id="s-student-name" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-home')">← 돌아가기</button>
+    <span class="badge badge-student">학생 확인</span>
+  </div>
+  <div class="card">
+    <div class="card-title">이름을 입력해 주세요</div>
+    <p style="font-size:12px;color:#7D6B73;margin-bottom:14px">담당 관리자(선생님)가 등록해준 이름과 동일하게 입력해야 숙제를 볼 수 있습니다.</p>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="sn-name" placeholder="예) 홍길동"
+             onkeydown="if(event.key==='Enter')confirmStudentName()">
+    </div>
+    <p id="sn-err" style="font-size:12px;color:#C2453C;margin-bottom:10px;display:none"></p>
+    <button class="btn btn-primary" onclick="confirmStudentName()">확인</button>
+  </div>
+</div>
+
+<!-- ════════ 학생: 숙제 선택 ════════ -->
+<div id="s-student-home" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-student-name')">← 뒤로</button>
+    <span class="badge badge-student">숙제 선택</span>
+  </div>
+  <div class="card">
+    <div class="card-title">응시할 숙제를 선택하세요</div>
+    <p style="font-size:11px;color:#A8949C;margin-bottom:10px" id="st-hw-scope-info"></p>
+    <div id="st-hw-list"><p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">로딩 중...</p></div>
+  </div>
+</div>
+
+<!-- ════════ 학생: 응시자 정보 ════════ -->
+<div id="s-student-info" class="screen">
+  <div class="topbar">
+    <button class="btn btn-outline btn-sm" onclick="go('s-student-home')">← 뒤로</button>
+    <span class="badge badge-student">응시자 정보</span>
+  </div>
+  <div class="card">
+    <div class="card-title" id="si-hw-title" style="font-size:15px;line-height:1.4"></div>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="st-name" readonly style="background:#F2E9EC;color:#7D6B73">
+    </div>
+    <div class="field">
+      <label>소속 (반 / 학년)</label>
+      <select id="st-group"></select>
+      <p class="hint" id="st-group-hint">선생님이 등록해둔 소속입니다. 다르면 목록에서 선택해주세요.</p>
+      <input type="text" id="st-group-free" placeholder="예) 중등 2반" style="display:none;margin-top:6px">
+    </div>
+    <button class="btn btn-primary" onclick="startExam()">답안 입력 시작 →</button>
+  </div>
+</div>
+
+<!-- ════════ 학생: 답안 입력 ════════ -->
+<div id="s-exam" class="screen">
+  <div class="topbar">
+    <div>
+      <div style="font-size:14px;font-weight:700" id="exam-hw-title"></div>
+      <div style="font-size:12px;color:#7D6B73;margin-top:1px" id="exam-student-info"></div>
+    </div>
+    <span class="badge badge-student">답안 입력</span>
+  </div>
+  <div class="card">
+    <div class="progress-wrap"><div class="progress-bar" id="exam-progress" style="width:0%"></div></div>
+    <div class="progress-label" id="exam-progress-label">0 / 0 문항 입력됨</div>
+    <div id="wrong-box" class="wrong-box" style="display:none">
+      <div class="wrong-box-title">❌ 틀린 문항</div>
+      <div class="wrong-nums" id="wrong-nums-list"></div>
+      <p style="font-size:11px;color:#A8949C;margin-top:8px">정답을 다시 입력하고 제출해보세요</p>
+    </div>
+    <div id="exam-area"></div>
+    <div class="exam-submit-bar">
+      <button class="btn-check" id="submit-btn" onclick="doCheckAnswers()">📤 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 결과 화면 (미완료: 틀린 문항 안내) ════════ -->
+<div id="s-result" class="screen">
+  <div class="topbar">
+    <span id="result-hw-info" style="font-size:13px;color:#7D6B73;font-weight:600"></span>
+    <span class="badge" style="background:#FBE8E6;color:#C2453C">채점 결과</span>
+  </div>
+  <div class="card">
+    <div class="result-hero">
+      <div class="r-icon">📋</div>
+      <h2 id="result-title">채점 결과</h2>
+      <p id="result-msg"></p>
+    </div>
+    <div class="result-stats">
+      <div class="rs-card">
+        <div class="rs-num" id="rs-correct" style="color:#4F8A6B">0</div>
+        <div class="rs-lbl">맞은 문항</div>
+      </div>
+      <div class="rs-card">
+        <div class="rs-num" id="rs-wrong" style="color:#C2453C">0</div>
+        <div class="rs-lbl">틀린 문항</div>
+      </div>
+    </div>
+    <!-- 틀린 문항 번호 목록 -->
+    <div class="wrong-detail-box" id="result-wrong-box" style="display:none">
+      <div class="wrong-detail-title">❌ 틀리거나 미입력한 문항</div>
+      <div class="wrong-q-list" id="result-wrong-list"></div>
+    </div>
+    <!-- 버튼 -->
+    <button class="btn btn-primary" onclick="goBackToExam()" style="margin-bottom:8px">✏️ 돌아가서 다시 풀기</button>
+    <button class="btn btn-outline" onclick="go('s-home')" style="font-size:13px">🏠 처음으로</button>
+  </div>
+</div>
+
+<!-- ════════ 완료 화면 ════════ -->
+<div id="s-complete" class="screen">
+  <div class="fireworks" id="fireworks"></div>
+  <div class="card" style="position:relative;z-index:1">
+    <div class="complete-hero">
+      <div class="big-icon">🎉</div>
+      <h2>숙제 완료!</h2>
+      <p id="complete-msg"></p>
+    </div>
+    <div class="complete-stats">
+      <div class="cs-card">
+        <div class="cs-num" id="cs-total">0</div>
+        <div class="cs-lbl">총 문항 수</div>
+      </div>
+      <div class="cs-card">
+        <div class="cs-num" style="color:#4F8A6B">100%</div>
+        <div class="cs-lbl">정답률</div>
+      </div>
+    </div>
+    <!-- [신규] 성장 배너 — 지난 기록 대비 개선된 지표가 있을 때만 표시 -->
+    <div id="growth-note" class="growth-note" style="display:none">
+      <div class="gn-icon">📈</div>
+      <div class="gn-text" id="growth-note-text"></div>
+    </div>
+    <!-- SMS 발송 결과 알림 -->
+    <div id="sms-notice" class="sms-notice" style="display:none"></div>
+    <button class="btn btn-success" onclick="go('s-home')">🏠 처음으로</button>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Loading -->
+<div id="loading" class="overlay" style="display:none">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <div style="font-size:14px;font-weight:600;color:#2E2229">처리 중...</div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
 
 <script>
-/* ══════════════════════════════════════════════════════════════════
-   ⚙ 설정 — 여기 딱 한 줄만 본인 것으로 바꾸면 됩니다
-   ══════════════════════════════════════════════════════════════════
-   Apps Script 편집기 → 배포 → 배포 관리 → 웹 앱 URL 을 복사해서 붙여넣기.
-   반드시 /exec 로 끝나야 합니다. (/dev 는 본인만 접속 가능하므로 안 됩니다)
-   ══════════════════════════════════════════════════════════════════ */
-var EXEC_URL = 'https://script.google.com/macros/s/AKfycbwCnweksHq84HwqJlmFrLhzw24Y76kdm8rSrl5LGGG6ZbQY8Md2QLkulzCCbc20VrTF/exec';
-
-/* ── 이 래퍼가 감싸는 화면 ──
-   'student' → 학생 응시 화면 (index)
-   'report'  → 학부모 리포트 화면 (report)  ← 이 파일은 리포트용입니다   */
-var VIEW = 'report';
+// ══════════════════════════════════════════════════════════════════
+//  상태
+// ══════════════════════════════════════════════════════════════════
+var currentHw       = null;
+var currentStudent  = {};
+var cachedHomeworks = [];
+var pendingQNums    = [];
+var examState       = {};
+var lastCheckResult = null;
+var currentAdminTab = 'hw';
+var currentAdmin    = null;   // { id, name, role } — 로그인한 관리자/마스터
+var studentAdminId  = null;   // 학생응시: 이름으로 조회된 "담당 관리자ID"
+var studentRegisteredGroup = ''; // 학생응시: 선생님이 학생목록에 등록해둔 이 학생의 소속(기본 선택값)
+var studentGroupOptions    = []; // 학생응시: 소속 드롭다운에 띄울 선택지 목록
+var cachedAdminList = [];     // 계정관리 탭: 관리자 목록 캐시(담당관리자 선택 드롭다운에 재사용)
+var cachedRecords     = [];   // 기록 탭: 서버에서 받은 전체 기록(필터/그룹핑은 클라이언트에서 처리)
+var cachedPerfects    = [];   // 만점자 탭: 서버에서 받은 전체 만점 기록
+var cachedStudentsList = [];  // 학생 탭: 서버에서 받은 전체 담당 학생 목록
 
 // ══════════════════════════════════════════════════════════════════
-//  아래부터는 수정할 필요 없습니다
+//  화면 전환
 // ══════════════════════════════════════════════════════════════════
-(function () {
-  'use strict';
+function go(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  // 앱모드 안내 배너는 학생이 처음 마주하는 홈 화면에서만 노출한다.
+  // (관리자 화면/응시 중 화면에서는 방해가 되므로 숨김)
+  if (typeof refreshAppModeBar === 'function') refreshAppModeBar(id);
+}
 
-  var DISMISS_KEY = 'sgw_wrap_dismiss_' + VIEW + '_v1';
+// ══════════════════════════════════════════════════════════════════
+//  관리자 탭 전환
+// ══════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  currentAdminTab = tab;
+  ['hw','rec','pf','stu','ct','acc'].forEach(function(t) {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('tab-content-' + t).style.display = (t === tab) ? '' : 'none';
+  });
+  // 탭 전환 시 해당 데이터 로드
+  if (tab === 'rec') loadRecords();
+  else if (tab === 'pf') { loadPerfect(); loadTodayDeadlineStats(); }
+  else if (tab === 'stu') loadStudents();
+  else if (tab === 'ct') loadContacts();
+  else if (tab === 'acc') loadAdmins();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  서버 통신
+// ══════════════════════════════════════════════════════════════════
+function callServer(payload, cb) {
+  showLoading(true);
+  google.script.run
+    .withSuccessHandler(function(res){
+      showLoading(false);
+      cb(null, typeof res === 'string' ? JSON.parse(res) : res);
+    })
+    .withFailureHandler(function(err){
+      showLoading(false);
+      cb(err.message || '서버 오류');
+    })
+    .handleRequest(JSON.stringify(payload));
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  관리자 로그인
+// ══════════════════════════════════════════════════════════════════
+function doAdminLogin() {
+  var id  = document.getElementById('admin-id').value.trim();
+  var pw  = document.getElementById('admin-pw').value;
+  var err = document.getElementById('admin-err');
+  err.style.display = 'none';
+  if (!id) { err.textContent = '관리자ID를 입력하세요.'; err.style.display = 'block'; return; }
+  callServer({ action: 'adminLogin', id: id, password: pw }, function(e, res) {
+    if (e) { showToast('서버 연결 오류'); return; }
+    if (res.ok) {
+      currentAdmin = { id: res.adminId, name: res.name, role: res.role };
+      document.getElementById('admin-pw').value = '';
+      renderAdminIdentity();
+      go('s-admin-main');
+      switchTab('hw');
+      loadHomeworks();
+    } else {
+      err.textContent = res.msg || '로그인에 실패했습니다.';
+      err.style.display = 'block';
+    }
+  });
+}
+
+function doAdminLogout() {
+  currentAdmin = null;
+  go('s-home');
+}
+
+// 로그인한 관리자 정보(이름/권한) 표시 + 마스터 전용 "계정관리" 탭 노출 여부 결정
+function renderAdminIdentity() {
+  if (!currentAdmin) return;
+  var isMaster = currentAdmin.role === 'MASTER';
+  document.getElementById('admin-role-badge').textContent = isMaster ? '🛡 마스터 대시보드' : '관리자 대시보드';
+  document.getElementById('admin-role-badge').className = 'badge ' + (isMaster ? 'badge-purple' : 'badge-admin');
+  document.getElementById('admin-whoami').textContent =
+    currentAdmin.name + ' (' + currentAdmin.id + ') · ' + (isMaster ? '마스터' : '관리자');
+  document.getElementById('tab-acc').style.display = isMaster ? '' : 'none';
+  document.getElementById('stu-admin-select-wrap').style.display = isMaster ? '' : 'none';
+  document.getElementById('stu-tab-hint').textContent = isMaster
+    ? '마스터는 모든 관리자의 담당 학생을 볼 수 있습니다. 이 목록에 없는 학생은 "학생 응시" 화면에서 숙제를 볼 수 없습니다.'
+    : '여기에 등록된 학생만 "학생 응시" 화면에서 내가 출제한 숙제를 볼 수 있습니다.';
+}
+
+// callServer 페이로드에 현재 로그인 관리자ID를 자동으로 실어 보내는 헬퍼
+function callAdminServer(payload, cb) {
+  if (!currentAdmin) { showToast('로그인이 필요합니다.'); go('s-admin-login'); return; }
+  payload.callerId = currentAdmin.id;
+  callServer(payload, function(e, res) {
+    if (!e && res && res.ok === false && /인증이 필요합니다/.test(res.msg || '')) {
+      showToast('로그인이 만료되었습니다. 다시 로그인해주세요.');
+      currentAdmin = null;
+      go('s-admin-login');
+      return;
+    }
+    cb(e, res);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  학년/반 필터 (기록·만점자·학생 탭 공통)
+// ══════════════════════════════════════════════════════════════════
+// list 안의 항목들이 가진 "group"(소속=반/학년 자유입력값) 중 중복 없는 값만 뽑아
+// selectId 드롭다운을 채운다. 데이터에 실제 존재하는 값만 나열하므로, 관리자가
+// "중2", "중등 2반"처럼 표기를 다르게 써도 강제로 하나로 합치지 않고 있는 그대로 보여준다.
+// 이전에 선택돼 있던 값이 새 목록에도 여전히 있으면 선택 상태를 유지한다.
+function populateGroupFilter(selectId, list) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  var prevValue = sel.value;
+  var seen = {};
+  var groups = [];
+  list.forEach(function(item) {
+    var g = String(item.group || '').trim();
+    if (g && !seen[g]) { seen[g] = true; groups.push(g); }
+  });
+  groups.sort(function(a, b) { return a.localeCompare(b, 'ko'); });
+  sel.innerHTML = '<option value="">전체 학년/반</option>' +
+    groups.map(function(g) { return '<option value="' + escHtml(g) + '">' + escHtml(g) + '</option>'; }).join('');
+  if (prevValue && groups.indexOf(prevValue) !== -1) sel.value = prevValue;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  데이터 로드 함수들
+// ══════════════════════════════════════════════════════════════════
+// 숙제의 대상학생 표시 문구를 만든다.
+//  - ["전체"]  → "대상 전체(담당 학생 모두)"  ※ 서버의 TARGET_STUDENTS_ALL_MARKER와 값이 같아야 함
+//  - []        → v13 이전에 대상학생 없이 저장된 레거시 숙제(현재는 저장 자체가 막혀 있음)
+//  - 그 외     → "대상 N명"
+function describeTargets_(targets) {
+  if (!targets || targets.length === 0) return '⚠ 대상 미지정(레거시 — 담당 학생 전원에게 노출됨)';
+  if (targets.length === 1 && targets[0] === '전체') return '대상 전체(담당 학생 모두)';
+  return '대상 ' + targets.length + '명';
+}
+
+function loadHomeworks() {
+  callAdminServer({ action: 'getHomeworks' }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('숙제 로드 실패: ' + (res ? res.msg : e)); return; }
+    cachedHomeworks = res.homeworks.map(normalizeHw);
+    renderAdminHwList(cachedHomeworks);
+  });
+}
+
+function loadRecords() {
+  callAdminServer({ action: 'getRecords' }, function(e, res) {
+    if (e || !res || !res.ok) return;
+    cachedRecords = res.records;
+    populateGroupFilter('rec-group-filter', cachedRecords);
+    renderAdminRecords();
+  });
+}
+
+function loadPerfect() {
+  callAdminServer({ action: 'getPerfect' }, function(e, res) {
+    if (e || !res || !res.ok) return;
+    cachedPerfects = res.perfects;
+    populateGroupFilter('pf-group-filter', cachedPerfects);
+    renderAdminPerfect();
+  });
+}
+
+// ── 오늘 마감 기준 현황 (만점자 탭 상단) ────────────────────────────
+// "오늘"은 마감일시의 날짜부분이 오늘인 숙제만을 뜻함(전체 누적 아님).
+// 그런 숙제가 하나도 없으면 groups가 빈 배열로 온다.
+function loadTodayDeadlineStats() {
+  callAdminServer({ action: 'getTodayDeadlinePerfectStats' }, function(e, res) {
+    if (e || !res || !res.ok) return;
+    renderTodayDeadlineStats(res);
+  });
+}
+
+function renderTodayDeadlineStats(data) {
+  var el = document.getElementById('admin-today-deadline-stats');
+  if (!data.groups || !data.groups.length) {
+    // 두 상황을 구분해 안내한다. 담당 학생이 없어서 집계가 비는 경우를
+    // "마감 숙제가 없다"고 표시하면 관리자가 잘못 판단할 수 있다.
+    var msg = (data.hasTodayHomework === false)
+      ? '오늘(' + escHtml(data.todayStr || '') + ') 마감인 숙제가 없습니다'
+      : '오늘 마감인 숙제는 있으나, 배정된 담당 학생이 없습니다';
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">' + msg + '</p>';
+    return;
+  }
+
+  function chipsOrEmpty(names) {
+    if (!names.length) return '<p class="dl-empty">없음</p>';
+    return '<div class="dl-name-chips">' + names.map(function(n) {
+      return '<span class="dl-name-chip">' + escHtml(n) + '</span>';
+    }).join('') + '</div>';
+  }
+
+  el.innerHTML =
+    '<p class="dl-date-note">' + escHtml(data.todayStr) + ' 마감 숙제 기준</p>' +
+    data.groups.map(function(g) {
+      return '<details class="dl-group">' +
+        '<summary>' +
+          '<div>' +
+            '<div class="dl-group-name">' + escHtml(g.group) + '<span class="dl-group-total">전체 ' + g.total + '명</span></div>' +
+            '<div class="dl-group-stats">' +
+              '<span class="dl-badge before">🟢 마감전 ' + g.beforeCount + '명</span>' +
+              '<span class="dl-badge after">🟡 마감후 ' + g.afterCount + '명</span>' +
+            '</div>' +
+          '</div>' +
+          '<span class="rec-group-arrow">▾</span>' +
+        '</summary>' +
+        '<div class="dl-group-body">' +
+          '<div class="dl-sublist"><div class="dl-sublist-title">🟢 마감 전 만점자 (' + g.beforeCount + '명)</div>' + chipsOrEmpty(g.beforeNames) + '</div>' +
+          '<div class="dl-sublist"><div class="dl-sublist-title">🟡 마감 후 만점자 (' + g.afterCount + '명)</div>' + chipsOrEmpty(g.afterNames) + '</div>' +
+        '</div>' +
+      '</details>';
+    }).join('');
+}
+
+function loadContacts() {
+  callServer({ action: 'getContacts' }, function(e, res) {
+    if (e || !res.ok) return;
+    renderAdminContacts(res.contacts);
+  });
+}
+
+// ── 학생관리 탭 ────────────────────────────────────────────────────
+function loadStudents() {
+  callAdminServer({ action: 'getStudents' }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('학생 목록 로드 실패: ' + (res ? res.msg : e)); return; }
+    cachedStudentsList = res.students;
+    populateGroupFilter('stu-group-filter', cachedStudentsList);
+    renderAdminStudents();
+  });
+}
+
+function renderAdminStudents() {
+  var el      = document.getElementById('admin-stu-list');
+  var badge   = document.getElementById('stu-count');
+  var filterG = document.getElementById('stu-group-filter').value;
+  var list    = filterG ? cachedStudentsList.filter(function(s){ return s.group === filterG; }) : cachedStudentsList;
+  badge.textContent = list.length + '명';
+  if (!list.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">' +
+      (filterG ? '해당 학년/반에 배정된 학생이 없습니다' : '배정된 학생이 없습니다<br><small>+ 학생 배정 버튼으로 등록하세요</small>') +
+      '</p>';
+    return;
+  }
+  var isMaster = currentAdmin && currentAdmin.role === 'MASTER';
+  el.innerHTML = list.map(function(s) {
+    // ⚠ 이름을 onclick="fn('이름')" 형태로 직접 끼워넣으면, 이름에 작은따옴표가 들어있을 때
+    //   (예: 오'브라이언) escHtml이 만든 &#39;를 브라우저가 '로 되돌리면서 JS 문법이 깨진다.
+    //   → data 속성에 담아 this.dataset으로 읽는 방식으로 바꿔 어떤 문자가 와도 안전하게 만든다.
+    return '<div class="ct-row">' +
+      '<div class="ct-info stu-name-link" data-name="' + escHtml(s.name) + '" onclick="openStudentReport(this.dataset.name)">' +
+        '<div class="ct-name">' + escHtml(s.name) + ' <span style="font-weight:400;color:#7D6B73;font-size:12px">· ' + escHtml(s.group || '-') + '</span></div>' +
+        (isMaster ? '<div class="ct-phone">👤 담당: ' + escHtml(s.adminName) + '</div>' : '') +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" style="margin-left:8px;flex-shrink:0" data-name="' + escHtml(s.name) + '" onclick="event.stopPropagation();doDeleteStudent(this.dataset.name)">삭제</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  학생 리포트 (학생 탭 → 이름 클릭)
+//  report.html(학부모용 공개 페이지)과 데이터 구조는 동일하지만, 전화번호 인증 대신
+//  이미 로그인된 관리자 세션(callerId)으로 열람 권한을 확인한다(getStudentReportForAdmin).
+// ══════════════════════════════════════════════════════════════════
+function openStudentReport(name) {
+  go('s-student-report');
+  document.getElementById('rep-loading').style.display = '';
+  document.getElementById('rep-body').style.display = 'none';
+  callAdminServer({ action: 'getStudentReportForAdmin', studentName: name }, function(e, res) {
+    if (e || !res || !res.ok) {
+      showToast('리포트 로드 실패: ' + (res ? res.msg : e));
+      go('s-admin-main');
+      switchTab('stu');
+      return;
+    }
+    document.getElementById('rep-loading').style.display = 'none';
+    document.getElementById('rep-body').style.display = '';
+    renderStudentReport(res);
+    renderReportGrowth(res.growth);
+    switchReportPanel('recent'); // 조회할 때마다 항상 '최근 14일' 탭부터
+  });
+}
+
+function switchReportPanel(panel) {
+  ['recent', 'growth'].forEach(function(p) {
+    document.getElementById('rep-tab-' + p).classList.toggle('active', p === panel);
+    document.getElementById('rep-panel-' + p).style.display = (p === panel) ? '' : 'none';
+  });
+}
+
+function badgeClass(hw) {
+  if (hw.status === '완료') {
+    if (hw.badge.indexOf('만점') !== -1) return 'rep-b-perfect';
+    if (hw.badge.indexOf('통과') !== -1 && hw.badge.indexOf('미통과') === -1) return 'rep-b-pass';
+    return 'rep-b-partial';
+  }
+  if (hw.status === '진행중') return 'rep-b-progress';
+  return 'rep-b-notyet';
+}
+
+// 재응시 2회 이상인 숙제의 점수 추이를 작은 꺾은선 그래프로 그린다.
+function miniTrendSvg(attempts) {
+  var w = 280, h = 44, pad = 6;
+  var n = attempts.length;
+  var pts = attempts.map(function(a, i) {
+    var x = pad + (n === 1 ? 0 : (i / (n - 1)) * (w - pad * 2));
+    var y = pad + (1 - Math.min(a.rate, 100) / 100) * (h - pad * 2);
+    return [x, y];
+  });
+  var pathD = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+  var dots = pts.map(function(p, i) {
+    var isLast = i === pts.length - 1;
+    return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (isLast ? 3.5 : 2.2) + '" fill="' + (isLast ? '#7A4A5E' : '#A9BAC9') + '"/>';
+  }).join('');
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none" style="display:block;margin:8px 0 2px">' +
+    '<path d="' + pathD + '" fill="none" stroke="#7A4A5E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    dots +
+  '</svg>';
+}
+
+// 숙제 하나에 쏟은 "시도 횟수 + 투입 기간"을 사실(desc)과, 그 사실이 가질 수 있는
+// 서로 다른 두 가지 해석(interp)을 함께 제공한다.
+function effortLabel(attempts) {
+  if (!attempts || attempts.length === 0) return null;
+  if (attempts.length === 1) {
+    return { icon: '✅', desc: '1회 시도 · 바로 완료', interp: '정확히 이해했거나, 난이도가 잘 맞았을 수 있어요' };
+  }
+  var first = new Date(attempts[0].completedAt.replace(' ', 'T'));
+  var last  = new Date(attempts[attempts.length - 1].completedAt.replace(' ', 'T'));
+  var spanMs = last.getTime() - first.getTime();
+  var spanMin = spanMs / 60000, spanHour = spanMs / 3600000, spanDay = spanMs / 86400000;
+  var n = attempts.length;
+  if (spanMin < 60) {
+    return { icon: '⚡', desc: n + '회 시도 · ' + Math.round(spanMin) + '분 소요', interp: '빠르게 몰입했거나, 서둘러 반복했을 수 있어요' };
+  }
+  if (spanHour < 24) {
+    return { icon: '🔁', desc: n + '회 시도 · 같은 날 안에서 소요', interp: '틈틈이 다시 살펴봤거나, 한 번에 끝내지 못했을 수 있어요' };
+  }
+  return { icon: '📅', desc: n + '회 시도 · ' + Math.round(spanDay) + '일 소요', interp: '꾸준히 이어갔거나, 다음으로 넘어가는 속도가 더뎠을 수 있어요' };
+}
+
+function renderStudentReport(res) {
+  document.getElementById('rep-name').textContent = res.student.name + ' 학생';
+  document.getElementById('rep-sub').textContent = res.student.group + ' · 담당 ' + res.student.teacherName + ' 선생님';
+  document.getElementById('rep-period').textContent = '최근 ' + res.periodDays + '일';
+
+  document.getElementById('rep-k-attempted').textContent = res.summary.attemptedCount + '/' + res.summary.assignedCount + '건';
+  document.getElementById('rep-k-rate').textContent = (res.summary.bestAvgRate === null ? '-' : res.summary.bestAvgRate + '%');
+  document.getElementById('rep-k-perfect').textContent = res.summary.perfectCount + '회';
+
+  var subParts = [];
+  subParts.push('총 학습 시도 ' + res.summary.totalAttempts + '회');
+  if (res.summary.onTimeStartRate !== null && res.summary.onTimeStartRate !== undefined) {
+    subParts.push('마감 전 착수율 ' + res.summary.onTimeStartRate + '%');
+  }
+  document.getElementById('rep-substats').textContent = subParts.join(' · ');
+
+  document.getElementById('rep-rate-caption').textContent = (res.summary.allAttemptsAvgRate !== null)
+    ? ('정답률은 숙제별 최고기록 평균 (전체시도 평균 ' + res.summary.allAttemptsAvgRate + '%)')
+    : '';
+
+  var insightEl = document.getElementById('rep-insight');
+  if (res.summary.insight) {
+    insightEl.textContent = res.summary.insight;
+    insightEl.style.display = 'flex';
+  } else {
+    insightEl.style.display = 'none';
+  }
+
+  var listEl = document.getElementById('rep-hw-list');
+  if (res.items.length === 0) {
+    listEl.innerHTML = '<div class="rep-empty-note">최근 ' + res.periodDays + '일 동안 배정된 숙제가 없습니다</div>';
+  } else {
+    listEl.innerHTML = res.items.map(function(hw) {
+      var hasAttempts = hw.attempts && hw.attempts.length > 0;
+      var el = hasAttempts ? effortLabel(hw.attempts) : null;
+
+      var effortHtml = el ? (
+        '<div class="rep-hw-effort">' +
+          '<div class="rep-hw-effort-icon">' + el.icon + '</div>' +
+          '<div><div class="rep-hw-effort-desc">' + el.desc + '</div>' +
+          '<div class="rep-hw-effort-interp">' + el.interp + '</div></div>' +
+        '</div>'
+      ) : '';
+
+      var trendHtml = (hasAttempts && hw.attempts.length >= 2) ? miniTrendSvg(hw.attempts) : '';
+      var attemptsHtml = '';
+      if (hasAttempts) {
+        attemptsHtml = '<div class="rep-hw-attempts">' + hw.attempts.map(function(a) {
+          return '<div class="rep-attempt-row"><span class="rr">' + a.round + '차 · ' + a.completedAt.slice(5, 16).replace('-', '/')
+               + (a.late ? ' <span class="rep-late-tag">🔁마감후</span>' : '') + '</span>'
+               + '<span>' + a.correct + '/' + a.total + ' (' + a.rate + '%)</span></div>';
+        }).join('') + '</div>';
+      }
+      var detailsHtml = hasAttempts
+        ? ('<details class="rep-hw-details"><summary>시도 기록 보기 (' + hw.attempts.length + '회)</summary>' + trendHtml + attemptsHtml + '</details>')
+        : '';
+
+      return '<div class="rep-hw-item">' +
+        '<div class="rep-hw-head">' +
+          '<div class="rep-hw-title">' + escHtml(hw.title) + '</div>' +
+          '<span class="rep-hw-badge ' + badgeClass(hw) + '">' + escHtml(hw.badge) + '</span>' +
+        '</div>' +
+        '<div class="rep-hw-meta">생성 ' + hw.createdAt.slice(0, 10)
+          + (hw.deadline ? (' · 마감 ' + hw.deadline) : '')
+          + (hw.dDayLabel ? ('<span class="rep-hw-dday">' + escHtml(hw.dDayLabel) + '</span>') : '') +
+        '</div>' +
+        effortHtml +
+        detailsHtml +
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('rep-foot').textContent = '조회 시각: ' + res.generatedAt + ' · 최근 ' + res.periodDays + '일간 기록 기준';
+}
+
+// 여러 시점을 잇는 2계열(착수율/정답률) 꺾은선 그래프
+function growthChartSvg(points) {
+  var w = 300, h = 130, padL = 8, padR = 8, padT = 10, padB = 22;
+  var n = points.length;
+  var x = function(i) { return padL + (n === 1 ? 0 : (i / (n - 1)) * (w - padL - padR)); };
+  var y = function(v) { return padT + (1 - v / 100) * (h - padT - padB); };
+
+  function lineFor(key, color) {
+    var pts = [];
+    for (var i = 0; i < points.length; i++) {
+      var v = points[i][key];
+      if (v === null || v === undefined || isNaN(v)) continue;
+      pts.push([x(i), y(v)]);
+    }
+    if (pts.length === 0) return '';
+    var d = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    var dots = pts.map(function(p, i) {
+      var isLast = i === pts.length - 1;
+      return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (isLast ? 4 : 2.5) + '" fill="' + color + '"/>';
+    }).join('');
+    return '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>' + dots;
+  }
+
+  var step = n > 7 ? Math.ceil(n / 6) : 1;
+  var labels = points.map(function(p, i) {
+    if (i % step !== 0 && i !== n - 1) return '';
+    return '<text x="' + x(i).toFixed(1) + '" y="' + (h - 6) + '" font-size="9" fill="#A8949C" text-anchor="middle">' + escHtml(p.label) + '</text>';
+  }).join('');
+
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" style="display:block">' +
+    lineFor('onTimeStartRate', '#7A4A5E') +
+    lineFor('bestAvgRate', '#96742A') +
+    labels +
+  '</svg>';
+}
+
+function renderReportGrowth(g) {
+  var pts = (g && g.points) ? g.points : [];
+  document.getElementById('rep-g-insight').textContent = (g && g.insight) ? g.insight : '';
+  document.getElementById('rep-g-insight').style.display = (g && g.insight) ? 'flex' : 'none';
+  document.getElementById('rep-g-sub').textContent =
+    '매주 일요일 밤 기록되는 요약값입니다. 최근 ' + ((g && g.retentionDays) || 45) + '일치가 보관되며, 원본 응시기록이 삭제돼도 이 추이는 남습니다.';
+
+  if (pts.length < 2) {
+    document.getElementById('rep-g-chart').innerHTML =
+      '<div class="rep-empty-note">아직 기록이 ' + pts.length + '개뿐이라 추이를 그릴 수 없어요.<br><small>매주 기록이 쌓이면 변화가 보입니다</small></div>';
+    document.getElementById('rep-g-legend').style.display = 'none';
+  } else {
+    document.getElementById('rep-g-chart').innerHTML = growthChartSvg(pts);
+    document.getElementById('rep-g-legend').style.display = 'flex';
+  }
+
+  if (pts.length === 0) {
+    document.getElementById('rep-g-list').innerHTML = '<div class="rep-empty-note">아직 적립된 기록이 없습니다</div>';
+    return;
+  }
+
+  document.getElementById('rep-g-list').innerHTML = pts.slice().reverse().map(function(p) {
+    var vals = [];
+    if (p.onTimeStartRate !== null)   vals.push('착수율 ' + p.onTimeStartRate + '%');
+    if (p.bestAvgRate !== null)       vals.push('정답률 ' + p.bestAvgRate + '%');
+    if (p.retryRecoveryRate !== null) vals.push('회복률 ' + p.retryRecoveryRate + '%');
+    return '<div class="rep-g-row">' +
+      '<div class="g-month">' + escHtml(p.label) + '</div>' +
+      '<div class="g-vals">' + (vals.length ? vals.join(' · ') : '기록 없음') + '</div>' +
+      (p.perfectCount > 0 ? '<div class="g-badge">만점 ' + p.perfectCount + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function openAddStudent() {
+  populateStudentAdminSelect();
+  go('s-add-student');
+}
+
+function doDeleteStudent(name) {
+  if (!confirm(name + ' 학생 배정을 삭제하시겠습니까?')) return;
+  callAdminServer({ action: 'deleteStudent', name: name }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('삭제 실패: ' + (res ? res.msg : e)); return; }
+    showToast('삭제되었습니다');
+    loadStudents();
+  });
+}
+
+function doSaveStudent() {
+  var name  = document.getElementById('stu-name').value.trim();
+  var group = document.getElementById('stu-group').value.trim();
+  if (!name) { showToast('학생 이름을 입력하세요'); return; }
+  var payload = { action: 'saveStudent', name: name, group: group };
+  if (currentAdmin && currentAdmin.role === 'MASTER') {
+    var sel = document.getElementById('stu-admin-select').value;
+    if (sel) payload.adminId = sel;
+  }
+  callAdminServer(payload, function(e, res) {
+    if (e || !res || !res.ok) { showToast('저장 실패: ' + (res ? res.msg : e)); return; }
+    showToast(res.updated ? '학생 정보가 갱신되었습니다' : '학생이 배정되었습니다');
+    document.getElementById('stu-name').value  = '';
+    document.getElementById('stu-group').value = '';
+    go('s-admin-main');
+    switchTab('stu');
+  });
+}
+
+// ── 계정관리 탭 (마스터 전용) ─────────────────────────────────────
+function loadAdmins() {
+  callAdminServer({ action: 'masterListAdmins' }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('관리자 목록 로드 실패: ' + (res ? res.msg : e)); return; }
+    cachedAdminList = res.admins;
+    renderAdminAccounts(res.admins);
+  });
+}
+
+function renderAdminAccounts(list) {
+  var el = document.getElementById('admin-acc-list');
+  if (!list.length) { el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">등록된 관리자가 없습니다</p>'; return; }
+  el.innerHTML = list.map(function(a) {
+    var roleBadge = a.role === 'MASTER'
+      ? '<span class="badge badge-purple">마스터</span>'
+      : '<span class="badge badge-admin">관리자</span>';
+    var isSelf = currentAdmin && a.id === currentAdmin.id;
+    return '<div class="ct-row">' +
+      '<div class="ct-info">' +
+        '<div class="ct-name">' + escHtml(a.name) + ' ' + roleBadge + '</div>' +
+        '<div class="ct-phone">ID: ' + escHtml(a.id) + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button class="btn btn-outline btn-sm" onclick="doResetAdminPassword(\'' + escHtml(a.id) + '\')">PW초기화</button>' +
+        (isSelf ? '' : '<button class="btn btn-danger btn-sm" onclick="doDeleteAdmin(\'' + escHtml(a.id) + '\')">삭제</button>') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function doResetAdminPassword(id) {
+  var newPw = prompt(id + ' 계정의 새 비밀번호를 입력하세요.');
+  if (!newPw) return;
+  callAdminServer({ action: 'masterUpdateAdminPassword', id: id, newPassword: newPw }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('변경 실패: ' + (res ? res.msg : e)); return; }
+    showToast('비밀번호가 변경되었습니다');
+  });
+}
+
+function doDeleteAdmin(id) {
+  if (!confirm(id + ' 관리자 계정을 삭제하시겠습니까? (해당 관리자가 담당하던 학생/숙제 데이터는 남아있지만 담당자 표시만 남습니다)')) return;
+  callAdminServer({ action: 'masterDeleteAdmin', id: id }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('삭제 실패: ' + (res ? res.msg : e)); return; }
+    showToast('삭제되었습니다');
+    loadAdmins();
+  });
+}
+
+function doCreateAdmin() {
+  var id   = document.getElementById('acc-id').value.trim();
+  var pw   = document.getElementById('acc-pw').value.trim();
+  var name = document.getElementById('acc-name').value.trim();
+  var role = document.getElementById('acc-role').value;
+  if (!id || !pw || !name) { showToast('ID, 비밀번호, 이름을 모두 입력하세요'); return; }
+  callAdminServer({ action: 'masterCreateAdmin', id: id, password: pw, name: name, role: role }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('생성 실패: ' + (res ? res.msg : e)); return; }
+    showToast('관리자 계정이 생성되었습니다');
+    document.getElementById('acc-id').value = '';
+    document.getElementById('acc-pw').value = '';
+    document.getElementById('acc-name').value = '';
+    go('s-admin-main');
+    switchTab('acc');
+  });
+}
+
+// 마스터가 "학생 배정" 화면에서 담당 관리자를 고를 수 있도록 드롭다운을 채워둔다
+function populateStudentAdminSelect() {
+  var sel = document.getElementById('stu-admin-select');
+  if (!currentAdmin || currentAdmin.role !== 'MASTER') return;
+  var fill = function(admins) {
+    sel.innerHTML = '<option value="">(마스터 본인 담당)</option>' +
+      admins.map(function(a){ return '<option value="' + escHtml(a.id) + '">' + escHtml(a.name) + ' (' + escHtml(a.id) + ')</option>'; }).join('');
+  };
+  if (cachedAdminList.length) { fill(cachedAdminList); return; }
+  callAdminServer({ action: 'masterListAdmins' }, function(e, res) {
+    if (e || !res || !res.ok) return;
+    cachedAdminList = res.admins;
+    fill(res.admins);
+  });
+}
+
+// ── 숙제 목록 렌더 ──────────────────────────────────────────────
+function renderAdminHwList(list) {
+  var el = document.getElementById('admin-hw-list');
+  if (!list.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">등록된 숙제가 없습니다</p>';
+    return;
+  }
+  var isMaster = currentAdmin && currentAdmin.role === 'MASTER';
+  el.innerHTML = list.map(function(hw) {
+    return '<div class="hw-row" id="hw-row-' + hw.id + '">' +
+      '<div class="hw-info">' +
+        '<div class="hw-title">' + escHtml(hw.title) + '</div>' +
+        '<div class="hw-meta"><span class="badge badge-hw">' + hw.id + '</span> · ' + hw.count + '문항' +
+          (isMaster ? ' · 출제자: ' + escHtml(hw.ownerId || '(레거시/미지정)') : '') + '</div>' +
+        '<div class="hw-qnums">문항번호: ' + hw.qNums.join(', ') + '번</div>' +
+        (hw.deadline
+          ? '<div class="hw-qnums">⏰ 마감: ' + escHtml(hw.deadline.replace('T',' ')) + ' · ' + describeTargets_(hw.targetStudents) + '</div>'
+          : '<div class="hw-qnums">⏰ 마감 없음(결과문자 발송 안 됨)</div>') +
+        '<div class="hw-deadline-edit" id="hw-deadline-edit-' + hw.id + '" style="display:none;margin-top:8px">' +
+          '<input type="datetime-local" id="hw-deadline-input-' + hw.id + '" style="font-size:13px;padding:6px 8px;border:1.5px solid #EDE1E5;border-radius:7px" value="' + (hw.deadline ? escHtml(hw.deadline.replace(' ','T').slice(0,16)) : '') + '">' +
+          '<button class="btn btn-primary btn-sm" style="margin-left:6px" onclick="doUpdateDeadline(\'' + hw.id + '\')">저장</button>' +
+          '<button class="btn btn-outline btn-sm" style="margin-left:4px" onclick="toggleDeadlineEdit(\'' + hw.id + '\', false)">취소</button>' +
+          '<button class="btn btn-outline btn-sm" style="margin-left:4px;color:#C2453C;border-color:#C2453C" onclick="doUpdateDeadline(\'' + hw.id + '\', true)">마감 없음으로</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-left:8px;flex-shrink:0">' +
+        '<button class="btn btn-outline btn-sm" onclick="toggleDeadlineEdit(\'' + hw.id + '\', true)">⏰ 마감수정</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="doDeleteHw(\'' + hw.id + '\')">삭제</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleDeadlineEdit(hwId, show) {
+  var box = document.getElementById('hw-deadline-edit-' + hwId);
+  if (box) box.style.display = show ? 'block' : 'none';
+}
+
+// [신규] 마감일시 수정 — 기존 예약(문자 발송 계획)을 취소하고 새 시각으로 재예약한다.
+// clearIt=true면 마감일시 자체를 비워서 자동 문자 발송을 끈다.
+function doUpdateDeadline(hwId, clearIt) {
+  var deadline = '';
+  if (!clearIt) {
+    var input = document.getElementById('hw-deadline-input-' + hwId);
+    deadline = input ? input.value : '';
+    if (!deadline) { showToast('마감일시를 입력해주세요 (비우려면 "마감 없음으로" 버튼을 쓰세요)'); return; }
+  } else {
+    if (!confirm('마감일시를 없애면 이 숙제의 자동 결과문자 발송이 예약 해제됩니다. 계속할까요?')) return;
+  }
+
+  callAdminServer({ action: 'updateHomeworkDeadline', hwId: hwId, deadline: deadline }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('수정 실패: ' + (res ? res.msg : e)); return; }
+    var msg = res.rescheduled
+      ? ('마감일시가 ' + res.newDeadline + '(으)로 변경되어, 그 시각(+1분) 기준으로 문자 발송이 재예약되었습니다.')
+      : '마감일시가 삭제되어 자동 문자 발송이 꺼졌습니다.';
+    if (res.alreadySent) {
+      msg += ' ※ 단, 이전 마감 기준으로 이미 발송된 문자는 취소되지 않습니다.';
+    }
+    showToast(msg);
+    loadHomeworks();
+  });
+}
+
+// ── 기록 렌더 ────────────────────────────────────────────────────
+// 기록 탭 — 학년/반 필터 적용 후, 동일 학생의 기록을 하나로 묶어 접었다 펼치는
+// 아코디언(<details>)으로 렌더링한다. 학생이 수십 건을 응시해도 목록에는 학생당
+// 요약 1줄만 보이고, 클릭해야 개별 기록이 펼쳐지므로 스크롤 부담이 학생 수만큼으로 줄어든다.
+function renderAdminRecords() {
+  var el      = document.getElementById('admin-rec-list');
+  var badge   = document.getElementById('rec-count');
+  var filterG = document.getElementById('rec-group-filter').value;
+  var records = filterG ? cachedRecords.filter(function(r){ return r.group === filterG; }) : cachedRecords;
+
+  badge.textContent = records.length + '건';
+  if (!records.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">' +
+      (filterG ? '해당 학년/반의 완료 기록이 없습니다' : '완료 기록이 없습니다') + '</p>';
+    return;
+  }
+
+  // 학생 이름 기준으로 그룹핑 (등장 순서 보존)
+  var byName = {};
+  var order  = [];
+  records.forEach(function(r) {
+    if (!byName[r.name]) { byName[r.name] = []; order.push(r.name); }
+    byName[r.name].push(r);
+  });
+
+  // 그룹(학생) 정렬 기준: 그 학생의 가장 최근 응시일이 늦은 순
+  order.sort(function(a, b) {
+    var la = byName[a].reduce(function(m, r){ return String(r.completedAt) > m ? String(r.completedAt) : m; }, '');
+    var lb = byName[b].reduce(function(m, r){ return String(r.completedAt) > m ? String(r.completedAt) : m; }, '');
+    return lb.localeCompare(la);
+  });
+
+  el.innerHTML = order.map(function(name) {
+    var list = byName[name].slice().sort(function(a, b) {
+      return String(b.completedAt).localeCompare(String(a.completedAt));
+    });
+    var total     = list.length;
+    var perfectCt = list.filter(function(r){ return r.result === '만점'; }).length;
+    var rate      = total ? Math.round(perfectCt / total * 100) : 0;
+    var group     = list[0].group;
+    var lastDate  = String(list[0].completedAt).slice(0, 16);
+
+    var rowsHtml = list.map(function(r) {
+      return '<div class="rec-row">' +
+        '<div>' +
+          '<div class="rec-main">' + escHtml(r.hwTitle) + '</div>' +
+          '<div class="rec-sub">' + (r.correct !== undefined ? r.correct + '/' + r.total + '문항 · ' : '') + String(r.completedAt).slice(0,16) + '</div>' +
+        '</div>' +
+        (r.result === "만점"
+          ? '<span class="badge badge-perfect" style="font-size:13px;padding:5px 10px;flex-shrink:0">🏆 만점</span>'
+          : '<span class="badge badge-ng" style="font-size:12px;padding:5px 10px;flex-shrink:0">✏️ ' + r.correct + '/' + r.total + '</span>'
+        ) +
+      '</div>';
+    }).join('');
+
+    return '<details class="rec-group">' +
+      '<summary>' +
+        '<div>' +
+          '<div class="rec-group-name">' + escHtml(name) + ' <span style="font-weight:400;color:#7D6B73;font-size:12px">· ' + escHtml(group) + '</span></div>' +
+          '<div class="rec-group-stats">총 ' + total + '회 · 만점 ' + perfectCt + '회(' + rate + '%) · 최근 ' + lastDate + '</div>' +
+        '</div>' +
+        '<span class="rec-group-arrow">▾</span>' +
+      '</summary>' +
+      '<div class="rec-group-body">' + rowsHtml + '</div>' +
+    '</details>';
+  }).join('');
+}
+
+// ── 만점자 렌더 ──────────────────────────────────────────────────
+function renderAdminPerfect() {
+  var el       = document.getElementById('admin-pf-list');
+  var badge    = document.getElementById('pf-count');
+  var filterG  = document.getElementById('pf-group-filter').value;
+  var perfects = filterG ? cachedPerfects.filter(function(p){ return p.group === filterG; }) : cachedPerfects;
+  badge.textContent = perfects.length + '명';
+  if (!perfects.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">' +
+      (filterG ? '해당 학년/반의 만점자가 없습니다' : '만점자가 없습니다') + '</p>';
+    return;
+  }
+  var rev = perfects.slice().reverse();
+  el.innerHTML = rev.map(function(p) {
+    return '<div class="pf-row">' +
+      '<div class="pf-info">' +
+        '<div class="pf-name">🏆 ' + escHtml(p.name) + ' <span style="font-weight:400;color:#7D6B73;font-size:12px">· ' + escHtml(p.group) + '</span></div>' +
+        '<div class="pf-meta">' + escHtml(p.hwTitle) + ' · ' + p.total + '문항</div>' +
+        '<div class="pf-meta">' + String(p.completedAt).slice(0,16) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── 연락처 렌더 ──────────────────────────────────────────────────
+function renderAdminContacts(contacts) {
+  var el = document.getElementById('admin-ct-list');
+  if (!contacts.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">등록된 연락처가 없습니다<br><small>+ 추가 버튼으로 학부모 번호를 등록하세요</small></p>';
+    return;
+  }
+  el.innerHTML = contacts.map(function(c) {
+    return '<div class="ct-row">' +
+      '<div class="ct-info">' +
+        '<div class="ct-name">' + escHtml(c.name) + '</div>' +
+        '<div class="ct-phone">📱 ' + escHtml(c.phone) +
+          (c.valid === false ? ' <span class="sms-ng">⚠ 형식오류</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" style="margin-left:8px;flex-shrink:0" onclick="doDeleteContact(\'' + escHtml(c.name) + '\')">삭제</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  숙제 삭제
+// ══════════════════════════════════════════════════════════════════
+function doDeleteHw(hwId) {
+  if (!confirm('이 숙제를 삭제하시겠습니까?')) return;
+  callAdminServer({ action: 'deleteHomework', hwId: hwId }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('삭제 실패: ' + (res ? res.msg : e)); return; }
+    var extra = res.deletedSubmissions ? (' · 응시기록 ' + res.deletedSubmissions + '건 삭제됨') : '';
+    showToast('삭제되었습니다' + extra);
+    loadHomeworks();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  연락처 저장 / 삭제
+// ══════════════════════════════════════════════════════════════════
+function doSaveContact() {
+  var name  = document.getElementById('ct-name').value.trim();
+  // 하이픈뿐 아니라 공백/괄호/국가번호 등 숫자 아닌 문자를 전부 제거 (서버 검증 기준과 동일하게 맞춤)
+  var phone = document.getElementById('ct-phone').value.replace(/\D/g,'');
+  if (phone.indexOf('82') === 0 && phone.length >= 11) phone = '0' + phone.slice(2);
+  if (!name)  { showToast('학생 이름을 입력하세요'); return; }
+  if (!phone) { showToast('전화번호를 입력하세요'); return; }
+  if (!/^0\d{8,10}$/.test(phone)) { showToast('전화번호 형식이 올바르지 않습니다 (예: 01012345678)'); return; }
+  callServer({ action: 'saveContact', name: name, phone: phone }, function(e, res) {
+    if (e || !res.ok) { showToast('저장 실패: ' + (res ? res.msg : e)); return; }
+    showToast(res.updated ? '번호가 업데이트되었습니다' : '연락처가 추가되었습니다');
+    document.getElementById('ct-name').value  = '';
+    document.getElementById('ct-phone').value = '';
+    go('s-admin-main');
+    switchTab('ct');
+  });
+}
+
+function doDeleteContact(name) {
+  if (!confirm(name + '님의 연락처를 삭제하시겠습니까?')) return;
+  callServer({ action: 'deleteContact', name: name }, function(e, res) {
+    if (e || !res.ok) { showToast('삭제 실패'); return; }
+    showToast('삭제되었습니다');
+    loadContacts();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  문항번호 태그 입력 (관리자)
+// ══════════════════════════════════════════════════════════════════
+function handleQnumKey(e) {
+  var inp = document.getElementById('qnum-inp');
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addQnumFromInput();
+  } else if (e.key === 'Backspace' && inp.value === '' && pendingQNums.length > 0) {
+    pendingQNums.pop();
+    renderQnumTags();
+  }
+}
+function handleQnumInput(e) {
+  if (document.getElementById('qnum-inp').value.includes(',')) addQnumFromInput();
+}
+function addQnumFromInput() {
+  var inp  = document.getElementById('qnum-inp');
+  var raw  = inp.value.replace(/,/g,' ').trim();
+  var nums = raw.split(/\s+/).filter(Boolean);
+  var err  = document.getElementById('qnum-error');
+  err.style.display = 'none';
+  var added = false;
+  nums.forEach(function(n) {
+    var num = parseInt(n);
+    if (isNaN(num) || num < 1 || num > 2000) {
+      err.textContent = '"' + n + '"은 유효하지 않은 번호입니다 (1~2000)';
+      err.style.display = 'block'; return;
+    }
+    if (pendingQNums.indexOf(num) !== -1) { showToast(num + '번은 이미 추가됨'); return; }
+    pendingQNums.push(num);
+    added = true;
+  });
+  if (added) { pendingQNums.sort(function(a,b){return a-b;}); renderQnumTags(); }
+  inp.value = '';
+}
+function removeQnum(num) {
+  pendingQNums = pendingQNums.filter(function(n){ return n !== num; });
+  renderQnumTags();
+}
+function renderQnumTags() {
+  var area = document.getElementById('qnum-tags');
+  var inp  = document.getElementById('qnum-inp');
+  area.querySelectorAll('.qnum-tag').forEach(function(t){ t.remove(); });
+  pendingQNums.forEach(function(num) {
+    var tag = document.createElement('span');
+    tag.className = 'qnum-tag';
+    tag.innerHTML = num + '번 <button onclick="removeQnum(' + num + ')">×</button>';
+    area.insertBefore(tag, inp);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  숙제 만들기
+// ══════════════════════════════════════════════════════════════════
+function goToAnswerInput() {
+  var title = document.getElementById('hw-title').value.trim();
+  var err   = document.getElementById('qnum-error');
+  err.style.display = 'none';
+  if (!title) { showToast('숙제 제목을 입력해주세요'); return; }
+  var inp = document.getElementById('qnum-inp');
+  if (inp.value.trim()) addQnumFromInput();
+  if (pendingQNums.length === 0) {
+    err.textContent = '문항 번호를 1개 이상 입력해주세요';
+    err.style.display = 'block'; return;
+  }
+  document.getElementById('setup-header').textContent = title + ' — ' + pendingQNums.length + '문항 정답 입력';
+  var area = document.getElementById('setup-ans-area');
+  area.innerHTML = pendingQNums.map(function(num, i) {
+    return '<div class="ans-setup-row">' +
+      '<span class="q-chip">' + num + '번</span>' +
+      '<input type="text" id="sa-' + i + '" placeholder="정답 입력" autocomplete="off">' +
+    '</div>';
+  }).join('');
+  go('s-answer-setup');
+}
+
+function doSaveHomework() {
+  var title   = document.getElementById('hw-title').value.trim();
+  var answers = [];
+  for (var i = 0; i < pendingQNums.length; i++) {
+    var v = document.getElementById('sa-' + i).value.trim();
+    if (!v) { showToast(pendingQNums[i] + '번 정답을 입력해주세요'); return; }
+    answers.push(v);
+  }
+
+  // datetime-local 값("yyyy-MM-ddTHH:mm")을 그대로 서버에 전달 (서버에서 파싱)
+  var deadline = document.getElementById('hw-deadline').value || '';
+
+  var targets = document.getElementById('hw-targets').value
+    .split('\n')
+    .map(function(s){ return s.trim(); })
+    .filter(function(s){ return s; });
+
+  callAdminServer({
+    action: 'saveHomework', title: title, qNums: pendingQNums, answers: answers,
+    deadline: deadline, targetStudents: targets
+  }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('저장 실패: ' + (res ? res.msg : e)); return; }
+    showToast('숙제 저장 완료! ID: ' + res.hwId + (deadline ? ' (마감 1분 후 자동문자 예약됨)' : ' (⚠ 마감일시 미입력 - 결과 문자 발송 안 됨)'));
+    document.getElementById('hw-title').value = '';
+    document.getElementById('hw-deadline').value = '';
+    document.getElementById('hw-targets').value = '';
+    pendingQNums = [];
+    renderQnumTags();
+    go('s-admin-main');
+    loadHomeworks();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  숙제 만들기 — 엑셀 업로드
+// ══════════════════════════════════════════════════════════════════
+var parsedExcelItems = [];
+
+function downloadExcelTemplate() {
+  var aoa = [
+    ['제목', '문항번호', '정답', '마감일시', '대상학생'],
+    ['3월 1주차 교재 p.32', '1,3,5,7', '①|②|③|④', '2026-07-10 18:00', '홍길동,김철수'],
+    ['3월 1주차 교재 p.40', '2,4,6', '10|20|30', '', '전체']
+  ];
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '숙제양식');
+  XLSX.writeFile(wb, '숙검완료_숙제업로드양식.xlsx');
+}
+
+function handleExcelFile(evt) {
+  var file = evt.target.files && evt.target.files[0];
+  var errEl = document.getElementById('excel-preview-error');
+  errEl.style.display = 'none';
+  document.getElementById('excel-preview').style.display = 'none';
+  if (!file) return;
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = new Uint8Array(e.target.result);
+      // ⚠ 버그 수정(v11): cellDates 옵션 없이 읽으면, 엑셀에서 "마감일시" 셀이 날짜 서식으로
+      //   저장돼 있을 경우 SheetJS가 Date 객체가 아니라 엑셀 내부 숫자(예: 46031.75 = 일련번호)를
+      //   그대로 돌려준다. 이 숫자가 문자열로 그대로 들어가서 구글시트에 "46031.75208333"처럼
+      //   말이 안 되는 마감일시가 저장되던 원인이었다. cellDates:true를 주면 날짜 서식 셀은
+      //   항상 JS Date 객체로 변환되어 넘어온다.
+      var wb = XLSX.read(data, { type: 'array', cellDates: true });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      parseExcelRows(rows);
+    } catch (err) {
+      errEl.textContent = '엑셀 파일을 읽는 중 오류가 발생했습니다: ' + err.message;
+      errEl.style.display = 'block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// 헤더 이름으로 열 위치를 찾아 순서가 바뀌어도 인식되도록 처리
+function findColIdx_(header, names) {
+  for (var i = 0; i < header.length; i++) {
+    var h = String(header[i] || '').trim().replace(/\s+/g, '');
+    if (names.indexOf(h) !== -1) return i;
+  }
+  return -1;
+}
+
+function parseExcelRows(rows) {
+  var errEl = document.getElementById('excel-preview-error');
+  if (!rows || rows.length < 2) {
+    errEl.textContent = '데이터가 없습니다. 헤더 다음 줄부터 숙제 정보를 입력해주세요.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var header = rows[0];
+  var idxTitle    = findColIdx_(header, ['제목', '숙제제목']);
+  var idxQNums    = findColIdx_(header, ['문항번호', '문항']);
+  var idxAnswers  = findColIdx_(header, ['정답', '정답목록']);
+  var idxDeadline = findColIdx_(header, ['마감일시', '마감']);
+  var idxTargets  = findColIdx_(header, ['대상학생', '대상']);
+
+  if (idxTitle === -1 || idxQNums === -1 || idxAnswers === -1) {
+    errEl.textContent = '헤더에서 "제목", "문항번호", "정답" 열을 찾을 수 없습니다. 양식을 확인해주세요.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // ⚠ 버그 수정: 같은 "제목"이 여러 행에 걸쳐 문항별로 한 줄씩 나뉘어 입력된 경우
+  //   (예: 한 제목에 문항번호 1개씩 18줄) 예전에는 행 하나당 숙제 1건이 그대로 생성되어
+  //   구글시트 "숙제목록"에 같은 숙제가 문항 수만큼(HW-ID 18개로) 쪼개져 올라갔다.
+  //   → 행을 먼저 "제목" 기준으로 그룹핑해서 문항번호/정답을 한 숙제로 합친 뒤 items를 만든다.
+  //   (문항번호를 한 셀에 "1,3,5,7"처럼 콤마로 합쳐 1행=1숙제로 입력한 기존 방식도 그대로 지원됨 —
+  //    이 경우 제목마다 행이 1개뿐이라 그룹핑해도 결과가 동일함)
+  var groupMap   = {};   // title -> 그룹 객체
+  var titleOrder = [];
+  var rowErrors  = [];
+
+  for (var r = 1; r < rows.length; r++) {
+    var row = rows[r];
+    if (!row || row.every(function(c){ return String(c || '').trim() === ''; })) continue;
+
+    var title = String(row[idxTitle] || '').trim();
+    if (!title) { rowErrors.push((r + 1) + '행: 제목이 비어있어 건너뜀'); continue; }
+
+    var qNums = String(row[idxQNums] || '').split(',').map(function(s){ return parseInt(String(s).trim(), 10); }).filter(function(n){ return !isNaN(n); });
+    var answers = String(row[idxAnswers] || '').split('|').map(function(s){ return s.trim(); }).filter(function(s){ return s !== ''; });
+
+    if (qNums.length === 0) { rowErrors.push((r + 1) + '행(' + title + '): 문항번호가 비어있어 건너뜀'); continue; }
+    if (answers.length !== qNums.length) {
+      rowErrors.push((r + 1) + '행(' + title + '): 정답 개수(' + answers.length + ')가 문항 수(' + qNums.length + ')와 달라 건너뜀');
+      continue;
+    }
+
+    var deadlineRaw = idxDeadline !== -1 ? row[idxDeadline] : '';
+    var deadline = normalizeExcelDeadline_(deadlineRaw);
+
+    var targetsRaw = idxTargets !== -1 ? String(row[idxTargets] || '') : '';
+    var targets = targetsRaw.split(/[,\n]/).map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+
+    if (!groupMap[title]) {
+      groupMap[title] = { title: title, qNums: [], answers: [], deadline: deadline, targetStudents: targets };
+      titleOrder.push(title);
+    } else {
+      // 같은 제목의 이후 행에 마감일시/대상학생이 처음 값과 다르게 채워져 있으면 알려주고,
+      // 실제 저장에는 그 제목에서 "처음 나온 값"만 사용한다(빈 값이면 이후 행 값으로 채움).
+      if (deadline && groupMap[title].deadline && deadline !== groupMap[title].deadline) {
+        rowErrors.push((r + 1) + '행(' + title + '): 마감일시가 같은 제목의 다른 행과 달라 처음 값(' + groupMap[title].deadline + ')을 사용합니다.');
+      }
+      if (!groupMap[title].deadline && deadline) groupMap[title].deadline = deadline;
+      if (!groupMap[title].targetStudents.length && targets.length) groupMap[title].targetStudents = targets;
+    }
+    groupMap[title].qNums   = groupMap[title].qNums.concat(qNums);
+    groupMap[title].answers = groupMap[title].answers.concat(answers);
+  }
+
+  var items = titleOrder.map(function(t){ return groupMap[t]; });
+
+  parsedExcelItems = items;
+  renderExcelPreview(items, rowErrors);
+}
+
+// 엑셀 날짜 셀은 Date 객체 또는 문자열로 들어올 수 있음 → "yyyy-MM-dd HH:mm" 문자열로 통일
+function normalizeExcelDeadline_(v) {
+  if (v === null || v === undefined || v === '') return '';
+  var p = function(n){ return String(n).padStart(2, '0'); };
+  if (v instanceof Date) {
+    return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate()) + ' ' + p(v.getHours()) + ':' + p(v.getMinutes());
+  }
+  // 방어 코드: cellDates 옵션이 적용되지 않는 특수한 경우, 엑셀 날짜가 순수 숫자(일련번호)로
+  // 남아있을 수 있다. 이 경우 XLSX.SSF로 실제 날짜로 변환한다. (예: 46031.75 → 2026-01-01 18:00)
+  if (typeof v === 'number' && window.XLSX && XLSX.SSF && XLSX.SSF.parse_date_code) {
+    var d = XLSX.SSF.parse_date_code(v);
+    if (d) {
+      var dt = new Date(d.y, d.m - 1, d.d, d.H || 0, d.M || 0);
+      return dt.getFullYear() + '-' + p(dt.getMonth() + 1) + '-' + p(dt.getDate()) + ' ' + p(dt.getHours()) + ':' + p(dt.getMinutes());
+    }
+  }
+  return String(v).trim();
+}
+
+function renderExcelPreview(items, rowErrors) {
+  var wrap = document.getElementById('excel-preview');
+  var list = document.getElementById('excel-preview-list');
+  var errEl = document.getElementById('excel-preview-error');
+  var btn = document.getElementById('excel-upload-btn');
+
+  document.getElementById('excel-preview-count').textContent = '(' + items.length + '건 인식됨)';
+  wrap.style.display = 'block';
+
+  if (items.length === 0) {
+    list.innerHTML = '<p style="font-size:13px;color:#C2453C;text-align:center;padding:8px 0">인식된 숙제가 없습니다</p>';
+    btn.disabled = true;
+  } else {
+    btn.disabled = false;
+    list.innerHTML = items.map(function(it) {
+      return '<div class="hw-row"><div class="hw-info">' +
+        '<div class="hw-title">' + escHtml(it.title) + '</div>' +
+        '<div class="hw-meta">' + it.qNums.length + '문항' + (it.deadline ? ' · 마감 ' + escHtml(it.deadline) : ' · 마감 없음') + '</div>' +
+        '<div class="hw-qnums">문항: ' + it.qNums.join(', ') + (it.targetStudents.length ? (' · 대상 ' + it.targetStudents.length + '명') : '') + '</div>' +
+      '</div></div>';
+    }).join('');
+  }
+
+  if (rowErrors && rowErrors.length) {
+    errEl.innerHTML = rowErrors.map(escHtml).join('<br>');
+    errEl.style.display = 'block';
+  } else {
+    errEl.style.display = 'none';
+  }
+}
+
+function submitExcelHomeworks() {
+  if (!parsedExcelItems.length) { showToast('업로드할 숙제가 없습니다'); return; }
+  callAdminServer({ action: 'saveHomeworkBulk', items: parsedExcelItems }, function(e, res) {
+    if (e || !res || !res.ok) { showToast('업로드 실패: ' + (res ? res.msg : e)); return; }
+    showToast(res.successCount + '/' + res.total + '건 출제 완료' + (res.failCount ? (' (실패 ' + res.failCount + '건)') : ''));
+    parsedExcelItems = [];
+    document.getElementById('hw-excel-file').value = '';
+    document.getElementById('excel-preview').style.display = 'none';
+    go('s-admin-main');
+    loadHomeworks();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  학생 — 이름 확인 → 담당 관리자가 출제한 숙제만 조회
+// ══════════════════════════════════════════════════════════════════
+function showStudentHomeworks() {
+  document.getElementById('sn-name').value = '';
+  document.getElementById('sn-err').style.display = 'none';
+  studentAdminId = null;
+  go('s-student-name');
+  setTimeout(function(){ var f = document.getElementById('sn-name'); if (f) f.focus(); }, 150);
+}
+
+function confirmStudentName() {
+  var name = document.getElementById('sn-name').value.trim();
+  var err  = document.getElementById('sn-err');
+  err.style.display = 'none';
+  if (!name) { err.textContent = '이름을 입력해주세요.'; err.style.display = 'block'; return; }
+
+  callServer({ action: 'getStudentHomeworks', name: name }, function(e, res) {
+    if (e) { err.textContent = '서버 연결 오류'; err.style.display = 'block'; return; }
+    if (!res.ok) {
+      err.textContent = res.msg || '숙제를 조회할 수 없습니다.';
+      err.style.display = 'block';
+      return;
+    }
+    currentStudent.name = name;
+    studentAdminId = res.adminId;
+    cachedHomeworks = res.homeworks.map(normalizeHw);
+    // [신규] 소속 드롭다운용 — 선생님이 등록한 이 학생의 소속과, 선택 가능한 소속 목록
+    studentRegisteredGroup = res.studentGroup || '';
+    studentGroupOptions    = res.groupOptions || [];
+
+    go('s-student-home');
+    document.getElementById('st-hw-scope-info').textContent =
+      '👤 ' + res.adminName + ' 선생님이 출제한 숙제만 표시됩니다';
+
+    var el = document.getElementById('st-hw-list');
+    if (!cachedHomeworks.length) {
+      el.innerHTML = '<p style="font-size:13px;color:#A8949C;text-align:center;padding:12px 0">지금 응시해야 할 숙제가 없습니다<br><small>새 숙제가 등록되면 여기에 표시됩니다</small></p>';
+      return;
+    }
+    el.innerHTML = cachedHomeworks.map(function(hw) {
+      return '<div class="hw-row">' +
+        '<div class="hw-info">' +
+          '<div class="hw-title">' + escHtml(hw.title) + '</div>' +
+          '<div class="hw-meta">' + hw.count + '문항</div>' +
+          '<div class="hw-qnums">풀어야 할 문항: ' + hw.qNums.join(', ') + '번</div>' +
+        '</div>' +
+        '<button class="btn btn-success btn-sm" style="margin-left:8px;flex-shrink:0" onclick="selectHomework(\'' + hw.id + '\')">응시</button>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+function selectHomework(hwId) {
+  currentHw = cachedHomeworks.find(function(h){ return h.id === hwId; });
+  if (!currentHw) { showToast('숙제를 찾을 수 없습니다'); return; }
+  document.getElementById('si-hw-title').textContent = '📋 ' + currentHw.title;
+  document.getElementById('st-name').value = currentStudent.name || '';
+  populateStudentGroupSelect();
+  go('s-student-info');
+}
+
+// 응시자 정보 화면의 "소속" 드롭다운을 채운다.
+// 기본값은 선생님이 등록해둔 이 학생의 소속. 목록에 그 값이 없으면(선생님이 아직 등록 안 한 경우 등)
+// 맨 앞에 끼워 넣어 항상 선택 가능하게 한다.
+// ⚠ 선택지가 하나도 없는 예외 상황(담당 학생 중 소속이 등록된 사람이 아무도 없는 경우)에만
+//   기존처럼 직접 입력할 수 있는 칸으로 대체한다 — 그래야 응시 자체가 막히지 않는다.
+function populateStudentGroupSelect() {
+  var sel   = document.getElementById('st-group');
+  var free  = document.getElementById('st-group-free');
+  var hint  = document.getElementById('st-group-hint');
+  var opts  = (studentGroupOptions || []).slice();
+  var mine  = studentRegisteredGroup || '';
+
+  if (mine && opts.indexOf(mine) === -1) opts.unshift(mine);
+
+  if (!opts.length) {
+    sel.style.display  = 'none';
+    free.style.display = '';
+    free.value = '';
+    hint.textContent = '등록된 소속이 없어 직접 입력합니다. 선생님께 소속 등록을 요청해주세요.';
+    return;
+  }
+
+  sel.style.display  = '';
+  free.style.display = 'none';
+  free.value = '';
+  sel.innerHTML = (mine ? '' : '<option value="">선택하세요</option>') +
+    opts.map(function(g){ return '<option value="' + escHtml(g) + '">' + escHtml(g) + '</option>'; }).join('');
+  sel.value = mine || '';
+  hint.textContent = mine
+    ? '선생님이 등록해둔 소속입니다. 다르면 목록에서 선택해주세요.'
+    : '선생님이 등록한 소속 목록입니다. 본인 반을 선택해주세요.';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  시험 시작
+// ══════════════════════════════════════════════════════════════════
+function startExam() {
+  var name  = document.getElementById('st-name').value.trim();
+  // 소속은 평소엔 드롭다운(st-group)에서, 선택지가 없는 예외 상황에서만 입력칸(st-group-free)에서 읽는다.
+  var freeEl = document.getElementById('st-group-free');
+  var group  = (freeEl.style.display === 'none')
+    ? document.getElementById('st-group').value.trim()
+    : freeEl.value.trim();
+  if (!name)  { showToast('이름 확인 화면으로 다시 이동합니다'); go('s-student-name'); return; }
+  if (!group) { showToast('소속을 선택해주세요'); return; }
+  if (!currentHw) { showToast('숙제 정보를 불러오지 못했습니다. 다시 선택해주세요.'); go('s-student-home'); return; }
+
+  currentStudent = { name: name, group: group };
+  document.getElementById('exam-hw-title').textContent     = currentHw.title;
+  document.getElementById('exam-student-info').textContent = name + ' · ' + group;
+
+  examState = {};
+  lastCheckResult = null;
+  document.getElementById('wrong-box').style.display = 'none';
+
+  var area = document.getElementById('exam-area');
+  area.innerHTML = currentHw.qNums.map(function(num, i) {
+    examState[i] = { value: '', status: 'pending' };
+    return '<div class="exam-row" id="row-' + i + '">' +
+      '<span class="q-chip-exam neutral" id="chip-' + i + '">' + num + '번</span>' +
+      '<input class="exam-input pending" type="text" id="ea-' + i + '"' +
+        ' placeholder="답 입력" autocomplete="off"' +
+        ' oninput="onExamInput(' + i + ')"' +
+        ' onkeydown="examKeydown(event,' + i + ')">' +
+      '<span class="res-icon" id="icon-' + i + '"></span>' +
+    '</div>';
+  }).join('');
+
+  // ★ go() 먼저 → DOM이 화면에 붙은 뒤 updateProgress 호출
+  go('s-exam');
+  updateProgress();
+  setTimeout(function(){ var f = document.getElementById('ea-0'); if(f) f.focus(); }, 200);
+
+  // 이어풀기: 이전에 통과 못하고 저장해둔 답안이 있으면 불러와서 채워준다
+  // (앱에서 로그아웃 후 다시 접속해도 이름+숙제가 같으면 서버에 저장된 답안을 이어서 사용)
+  loadDraftIntoExam();
+}
+
+function loadDraftIntoExam() {
+  callServer({ action: 'getDraft', hwId: currentHw.id, name: currentStudent.name }, function(e, res) {
+    if (e || !res || !res.ok || !res.found) return;
+    var answers = res.answers || [];
+    var filled = 0;
+    for (var i = 0; i < currentHw.count; i++) {
+      var inp = document.getElementById('ea-' + i);
+      if (!inp) continue;
+      var v = answers[i] || '';
+      if (v !== '') {
+        inp.value = v;
+        examState[i] = { value: v, status: 'pending' };
+        filled++;
+      }
+    }
+    if (filled > 0) {
+      updateProgress();
+      showToast('📝 이전에 입력하던 답안을 이어서 불러왔습니다');
+    }
+  });
+}
+
+// ── 입력 이벤트 ────────────────────────────────────────────────────
+function onExamInput(idx) {
+  var inp = document.getElementById('ea-' + idx);
+  examState[idx] = { value: inp.value, status: 'pending' };
+  inp.className = 'exam-input pending';
+  document.getElementById('chip-' + idx).className = 'q-chip-exam neutral';
+  document.getElementById('icon-' + idx).textContent = '';
+  updateProgress();
+}
+function examKeydown(e, idx) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    var next = document.getElementById('ea-' + (idx + 1));
+    if (next) next.focus();
+    else document.getElementById('submit-btn').focus();
+  }
+}
+function updateProgress() {
+  var filled = 0;
+  for (var i = 0; i < currentHw.count; i++) {
+    if ((document.getElementById('ea-' + i).value || '').trim() !== '') filled++;
+  }
+  var pct = Math.round(filled / currentHw.count * 100);
+  document.getElementById('exam-progress').style.width = pct + '%';
+  document.getElementById('exam-progress-label').textContent = filled + ' / ' + currentHw.count + ' 문항 입력됨';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  채점 / 제출
+// ══════════════════════════════════════════════════════════════════
+function collectAnswers() {
+  var answers = [];
+  for (var i = 0; i < currentHw.count; i++) {
+    answers.push((document.getElementById('ea-' + i).value || '').trim());
+  }
+  return answers;
+}
+
+function doCheckAnswers() {
+  var answers = collectAnswers();
+  callServer({
+    action:  'checkAnswers',
+    hwId:    currentHw.id,
+    answers: answers,
+    name:    currentStudent.name  || '',
+    group:   currentStudent.group || '',
+    studentAdminId: studentAdminId
+  }, function(e, res) {
+    if (e || !res.ok) { showToast(res && res.msg ? res.msg : '채점 중 오류가 발생했습니다'); return; }
+    lastCheckResult = res;
+    applyCheckResult(res);
+
+    if (res.allOk) {
+      // ★ 만점 → 최종 제출 후 완료 화면
+      doSubmitFinal(answers);
+    } else {
+      // ★ 미완료 → 결과 화면으로 이동 (완료화면 절대 진입 안 함)
+      showResultScreen(res);
+    }
+  });
+}
+
+function applyCheckResult(res) {
+  var wrongNums = [];
+  res.detail.forEach(function(d) {
+    var inp  = document.getElementById('ea-'   + d.idx);
+    var chip = document.getElementById('chip-' + d.idx);
+    var icon = document.getElementById('icon-' + d.idx);
+    if (!inp) return;
+    if (d.student === '') {
+      inp.className = 'exam-input pending';
+      chip.className = 'q-chip-exam neutral';
+      icon.textContent = '';
+    } else if (d.ok) {
+      inp.className = 'exam-input correct';
+      chip.className = 'q-chip-exam correct';
+      icon.textContent = '✅';
+    } else {
+      inp.className = 'exam-input wrong';
+      chip.className = 'q-chip-exam wrong';
+      icon.textContent = '❌';
+      wrongNums.push(d.qNum);
+    }
+  });
+  var box = document.getElementById('wrong-box');
+  if (!res.allOk && wrongNums.length > 0) {
+    box.style.display = 'block';
+    document.getElementById('wrong-nums-list').innerHTML =
+      wrongNums.map(function(n){ return '<span class="wrong-num-chip">' + n + '번</span>'; }).join('');
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function doSubmitFinal(answers) {
+  callServer({
+    action:  'submitFinal',
+    hwId:    currentHw.id,
+    name:    currentStudent.name,
+    group:   currentStudent.group,
+    answers: answers,
+    studentAdminId: studentAdminId
+  }, function(e, res) {
+    if (e || !res.ok) { showToast('기록 저장 실패: ' + (res ? res.msg : e)); return; }
+    showComplete(res);
+  });
+}
+
+// 미완료 결과 화면 표시
+function showResultScreen(res) {
+  var name    = currentStudent.name;
+  var total   = res.total;
+  var correct = res.correct;
+  var wrong   = total - correct;
+
+  // 헤더 정보
+  document.getElementById('result-hw-info').textContent = currentHw.title + ' · ' + name;
+
+  // 제목/메시지
+  var titleEl = document.getElementById('result-title');
+  var msgEl   = document.getElementById('result-msg');
+  if (correct === 0) {
+    titleEl.textContent = '아직 아무것도 맞지 않았어요';
+    titleEl.style.color = '#C2453C';
+  } else {
+    titleEl.textContent = '조금만 더 힘내세요!';
+    titleEl.style.color = '#B8860B';
+  }
+  msgEl.textContent = name + '님, ' + total + '문항 중 ' + correct + '문항 정답입니다.';
+
+  // 점수 카드
+  document.getElementById('rs-correct').textContent = correct;
+  document.getElementById('rs-wrong').textContent   = wrong;
+
+  // 틀린 문항 번호 목록
+  var wrongNums = res.detail
+    .filter(function(d){ return !d.ok; })
+    .map(function(d){ return d.qNum; });
+
+  var wBox = document.getElementById('result-wrong-box');
+  if (wrongNums.length > 0) {
+    wBox.style.display = 'block';
+    document.getElementById('result-wrong-list').innerHTML =
+      wrongNums.map(function(n){
+        return '<span class="wrong-q-chip">' + n + '번</span>';
+      }).join('');
+  } else {
+    wBox.style.display = 'none';
+  }
+
+  go('s-result');
+}
+
+// 결과 화면 → 답안 입력 화면으로 복귀 (기존 답안 유지)
+function goBackToExam() {
+  go('s-exam');
+  // 채점 결과 스타일 유지한 채로 복귀 (틀린 칸은 빨간 테두리 그대로)
+  window.scrollTo(0, 0);
+  // 첫 번째 틀린 문항으로 포커스 이동
+  if (lastCheckResult && lastCheckResult.detail) {
+    var firstWrong = lastCheckResult.detail.find(function(d){ return !d.ok; });
+    if (firstWrong !== undefined) {
+      var inp = document.getElementById('ea-' + firstWrong.idx);
+      if (inp) {
+        setTimeout(function(){
+          inp.focus();
+          inp.select();
+        }, 150);
+      }
+    }
+  }
+}
+
+function showComplete(res) {
+  var name  = currentStudent.name;
+  var total = res.total || currentHw.count;
+  document.getElementById('complete-msg').textContent =
+    name + '님, ' + total + '문항 모두 정답입니다! 🎊' + (res.isRetake ? ' (보충 2차통과)' : '');
+  document.getElementById('cs-total').textContent = total;
+
+  // 안내 문구
+  // - 보충(2차) 재응시로 만점을 받은 경우 → 2차통과 시각 기준 1분 뒤 전용 문자 발송
+  // - 그 외 일반 제출 → 해당 숙제에 마감일시가 설정된 경우에만 마감시각 기준 1분 뒤 일괄 발송
+  var notice = document.getElementById('sms-notice');
+  if (res.isRetake) {
+    notice.className = 'sms-notice sent';
+    notice.textContent = '📱 보충 재응시로 만점 처리되어, ' + (res.delayMin || 1) + '분 후 학부모님께 "2차통과" 문자가 발송됩니다';
+    notice.style.display = 'block';
+  } else if (res.hasDeadline) {
+    notice.className = 'sms-notice sent';
+    notice.textContent = '📱 이 숙제는 마감시각 기준 1분 뒤 학부모님께 제출결과 문자가 발송됩니다';
+    notice.style.display = 'block';
+  } else {
+    notice.className = 'sms-notice fail';
+    notice.textContent = 'ℹ️ 이 숙제는 마감일시가 설정되어 있지 않아 결과 문자가 발송되지 않습니다';
+    notice.style.display = 'block';
+  }
+
+  // [신규] 성장 배너 — 지난 스냅샷 대비 개선된 지표가 있을 때만 표시(없으면 서버가 빈 문자열 반환)
+  var gnBox = document.getElementById('growth-note');
+  if (res.growthNote) {
+    document.getElementById('growth-note-text').textContent = res.growthNote;
+    gnBox.style.display = 'flex';
+  } else {
+    gnBox.style.display = 'none';
+  }
+
+  go('s-complete');
+  launchFireworks();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  폭죽 애니메이션
+// ══════════════════════════════════════════════════════════════════
+function launchFireworks() {
+  var fw = document.getElementById('fireworks');
+  fw.innerHTML = '';
+  var colors = ['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8'];
+  for (var i = 0; i < 60; i++) {
+    (function(idx){
+      setTimeout(function(){
+        var p = document.createElement('div');
+        p.style.cssText = 'position:absolute;left:' + (Math.random()*100) + '%;top:-10px;' +
+          'width:8px;height:8px;background:' + colors[idx % colors.length] + ';border-radius:50%;' +
+          'animation:fall ' + (1.5 + Math.random()) + 's ease-in forwards';
+        fw.appendChild(p);
+      }, idx * 80);
+    })(i);
+  }
+  if (!document.getElementById('fw-style')) {
+    var s = document.createElement('style');
+    s.id = 'fw-style';
+    s.textContent = '@keyframes fall{0%{transform:translateY(0) rotate(0);opacity:1}' +
+      '100%{transform:translateY(110vh) rotate(720deg);opacity:0}}';
+    document.head.appendChild(s);
+  }
+  setTimeout(function(){ fw.innerHTML = ''; }, 5000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  공통 유틸
+// ══════════════════════════════════════════════════════════════════
+function showLoading(v) { document.getElementById('loading').style.display = v ? 'flex' : 'none'; }
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+// qNums를 항상 숫자 배열로 정규화하는 헬퍼
+function normalizeHw(hw) {
+  if (!hw) return hw;
+  var qNums = Array.isArray(hw.qNums)
+    ? hw.qNums.map(Number)
+    : String(hw.qNums).split(',').map(function(n){ return parseInt(n.trim(), 10); });
+  var count = qNums.length;
+  return Object.assign({}, hw, { qNums: qNums, count: count });
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  앱모드 안내 모듈 (주소창 숨기기)
+// ══════════════════════════════════════════════════════════════════
+//  [배경]
+//  웹 표준상 페이지 코드로 브라우저 주소창을 지울 방법은 없다. 주소창은
+//  피싱 방지를 위한 보안 UI라서 JS 접근이 원천 차단돼 있다. 주소창이
+//  실제로 사라지는 경우는 딱 하나, 사용자가 "홈 화면에 추가"로 만든
+//  아이콘을 눌러 실행했을 때뿐이다(= standalone / 앱 모드).
+//
+//  [그래서 하는 일 — 2단계]
+//   1단계: 카카오톡 인앱브라우저는 홈 화면 추가 자체가 불가능하므로,
+//          먼저 기본 브라우저(Chrome/Safari)로 빠져나가게 만든다.
+//   2단계: 기본 브라우저에 도착했으면 "홈 화면에 추가"를 안내한다.
+//          한 번 추가하고 나면 그 뒤로는 영원히 주소창 없이 열린다.
+//
+//  [자동 숨김]
+//  이미 앱 모드로 실행 중이면 배너를 아예 만들지 않는다. 목적을 달성한
+//  사용자에게 같은 안내를 계속 띄우면 신뢰도만 떨어지기 때문.
+// ══════════════════════════════════════════════════════════════════
+// 래퍼(앱 껍데기) 안에서 열렸는지 서버가 알려주는 값.
+// true 이면 래퍼가 이미 설치 안내를 하고 있으므로 안쪽 배너는 끈다.
+var IS_EMBEDDED = <?= embedded ?>;
+
+var AppMode = (function () {
+
+  var DISMISS_KEY = 'sgw_appmode_dismissed_v1';
+  // 이 화면들에서만 배너를 노출한다(학생이 처음 보는 첫 페이지).
+  var ALLOWED_SCREENS = ['s-home'];
 
   var ua        = navigator.userAgent || '';
   var isKakao   = /KAKAOTALK/i.test(ua);
@@ -133,42 +2459,18 @@ var VIEW = 'report';
   var isInApp   = isKakao || isLine || isNaver || isInsta || isFB;
 
   var isIOS     = /iPhone|iPad|iPod/i.test(ua) ||
+                  // iPadOS 13+ 는 UA를 Mac으로 위장하므로 터치 지원 여부로 보정
                   (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);
   var isSamsung = /SamsungBrowser/i.test(ua);
 
-  // ── 1. iframe 주소 조립 ──────────────────────────────────────
-  // app=1 을 붙여서, iframe 안쪽 앱이 "나는 지금 앱 껍데기 안에서
-  // 실행 중"임을 알 수 있게 한다. 그래야 안쪽에서 똑같은 설치 안내
-  // 배너를 또 띄우는 중복이 생기지 않는다.
-  var src = EXEC_URL + (EXEC_URL.indexOf('?') === -1 ? '?' : '&') + 'app=1';
-  if (VIEW === 'report') src += '&view=report';
+  var topUrl = '';   // 서버에서 받아올 최상위 웹앱 URL
 
-  var frame = document.getElementById('app-frame');
-  frame.src = src;
-
-  var direct = document.getElementById('boot-direct');
-  if (direct) direct.href = src;
-
-  // ── 2. 로딩 종료 / 실패 대비 ─────────────────────────────────
-  var booted = false;
-  function bootDone() {
-    if (booted) return;
-    booted = true;
-    var b = document.getElementById('boot');
-    b.classList.add('gone');
-    setTimeout(function () { b.style.display = 'none'; }, 350);
-    setTimeout(maybeShowSheet, 900);   // 화면 뜬 뒤에 안내 시트
-  }
-  frame.addEventListener('load', bootDone);
-
-  // 10초 안에 안 뜨면 "바로 열기" 버튼을 보여준다.
-  // (iOS의 서드파티 저장소 차단 등으로 iframe이 막히는 예외 상황 대비)
-  setTimeout(function () {
-    if (!booted) document.getElementById('boot-fallback').style.display = 'block';
-  }, 10000);
-
-  // ── 3. 앱 모드(주소창 없음) 여부 ─────────────────────────────
+  // ── 이미 "앱 모드"로 실행 중인가? ──────────────────────────────
+  // iOS: navigator.standalone (구형 사파리 전용 속성)
+  // 그 외: display-mode 미디어쿼리. 이 미디어 특성은 최상위 브라우징
+  //        컨텍스트 기준으로 판정되므로, Apps Script처럼 iframe 안에서
+  //        실행돼도 값이 그대로 전달된다.
   function isStandalone() {
     try {
       if (window.navigator.standalone === true) return true;
@@ -180,126 +2482,153 @@ var VIEW = 'report';
     return false;
   }
 
-  // ── 4. 닫기 기억 ─────────────────────────────────────────────
-  // 이 래퍼는 github.io 라는 고정 도메인에서 실행되므로 localStorage 가
-  // 안정적으로 유지된다. (Apps Script 쪽은 출처가 바뀌어 날아가곤 했음)
+  // ── 닫기 상태 저장 ────────────────────────────────────────────
+  // 주의: Apps Script iframe의 출처(googleusercontent.com 하위 도메인)는
+  //       세션마다 바뀔 수 있어 localStorage가 초기화되는 경우가 있다.
+  //       그래서 localStorage → sessionStorage 순으로 시도하고, 둘 다
+  //       막혀 있으면(사생활 보호 모드 등) 메모리 변수로만 처리한다.
   var memDismissed = false;
   function isDismissed() {
     if (memDismissed) return true;
-    try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch (e) { return false; }
+    try { if (localStorage.getItem(DISMISS_KEY) === '1') return true; } catch (e) {}
+    try { if (sessionStorage.getItem(DISMISS_KEY) === '1') return true; } catch (e) {}
+    return false;
   }
   function setDismissed() {
     memDismissed = true;
     try { localStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
+    try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
   }
 
-  // ── 5. 인앱브라우저 탈출 ─────────────────────────────────────
-  // 래퍼는 최상위 문서이므로 location.href 를 그대로 읽을 수 있다.
+  // ── 인앱브라우저 → 기본 브라우저 이탈 ──────────────────────────
+  // 반드시 "사용자 클릭" 안에서만 호출할 것. Apps Script의 iframe은
+  // allow-top-navigation-by-user-activation 샌드박스라, 클릭 없이
+  // 자동으로 최상위 이동을 시도하면 브라우저가 차단한다.
   function escapeInApp() {
-    var url = location.href;
+    var url = topUrl || '';
+    if (!url) {
+      showToast('주소를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
+      return;
+    }
+
     if (isAndroid) {
+      // Android: intent 스킴으로 Chrome 지정 실행.
+      // Chrome이 없는 기기를 대비해 browser_fallback_url 을 함께 넘긴다.
       var bare = url.replace(/^https?:\/\//i, '');
-      location.href = 'intent://' + bare + '#Intent;scheme=https;' +
+      var intentUrl = 'intent://' + bare + '#Intent;scheme=https;' +
                       'package=com.android.chrome;' +
                       'S.browser_fallback_url=' + encodeURIComponent(url) + ';end;';
+      navigateTop(intentUrl);
     } else if (isIOS && isKakao) {
-      location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+      // iOS 카카오톡: 카카오가 공식 제공하는 외부 브라우저 열기 스킴
+      navigateTop('kakaotalk://web/openExternal?url=' + encodeURIComponent(url));
     } else {
-      window.open(url, '_blank');
+      // 그 외 인앱브라우저(iOS 라인/인스타 등)는 표준 이탈 스킴이 없다.
+      // 새 창으로 띄우면 대개 기본 브라우저로 넘어간다.
+      try { window.open(url, '_blank'); }
+      catch (e) { navigateTop(url); }
     }
   }
 
-  // ── 6. 설치 프롬프트 (안드로이드 크롬/삼성인터넷) ────────────
-  // 매니페스트 + 서비스워커 조건을 만족하면 브라우저가 이 이벤트를 준다.
-  // 이 이벤트를 잡아뒀다가 사용자가 버튼을 누를 때 prompt() 를 띄우면
-  // "홈 화면 바로가기"가 아니라 진짜 앱(WebAPK) 설치가 실행된다.
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (booted) maybeShowSheet();
-  });
-  window.addEventListener('appinstalled', function () {
-    deferredPrompt = null;
-    hideSheet();
-  });
+  function navigateTop(href) {
+    try { window.top.location.href = href; }
+    catch (e) {
+      try { window.open(href, '_blank'); }
+      catch (e2) { location.href = href; }
+    }
+  }
 
-  // ── 7. 안내 시트 ─────────────────────────────────────────────
-  var sheet = document.getElementById('sheet');
-  var card  = document.getElementById('sheet-card');
-
-  function hideSheet() { sheet.classList.remove('show'); }
-
-  function homeSteps() {
+  // ── 홈 화면 추가 안내 문구 (브라우저별로 메뉴 위치가 다름) ──────
+  function homeScreenSteps() {
     if (isIOS)     return '공유 버튼 <b>⬆︎</b> → <b>홈 화면에 추가</b> → <b>추가</b>';
     if (isSamsung) return '메뉴 <b>≡</b> → <b>현재 페이지 추가</b> → <b>홈 화면</b>';
-    if (isAndroid) return '메뉴 <b>⋮</b> → <b>홈 화면에 추가</b>';
+    if (isAndroid) return '메뉴 <b>⋮</b> → <b>홈 화면에 추가</b> (또는 <b>앱 설치</b>)';
     return '브라우저 메뉴 → <b>홈 화면에 추가</b>';
   }
 
-  function maybeShowSheet() {
-    // 이미 앱 모드로 실행 중이면 목적 달성 → 아무것도 띄우지 않는다
-    if (isStandalone() || isDismissed()) return;
+  // ── 배너 렌더링 ───────────────────────────────────────────────
+  function render(screenId) {
+    var wrap = document.getElementById('appmode-wrap');
+    if (!wrap) return;
 
-    var html = '<button class="sheet-close" aria-label="닫기">✕</button>';
-    var mode;
+    var allowed = ALLOWED_SCREENS.indexOf(screenId) !== -1;
 
-    if (isInApp) {
-      // 인앱브라우저는 홈 화면 추가 자체가 불가능 → 먼저 탈출부터
-      var appName = isKakao ? '카카오톡' : isNaver ? '네이버' :
-                    isLine  ? '라인'     : isInsta ? '인스타그램' : '앱';
-      mode = 'escape';
-      html += '<h3>📱 주소창 없이 앱처럼 보시려면</h3>' +
-              '<p>지금은 ' + appName + ' 안의 브라우저라 주소가 보입니다. ' +
-              '아래 버튼으로 기본 브라우저에서 연 뒤, 안내되는 대로 한 번만 설치해두시면 ' +
-              '다음부터 주소창 없이 바로 열립니다.</p>' +
-              '<button class="sheet-btn" id="sheet-act">🌐 기본 브라우저로 열기</button>';
-
-    } else if (deferredPrompt) {
-      // 진짜 앱 설치가 가능한 상태 (안드로이드)
-      mode = 'install';
-      html += '<h3>📲 앱으로 설치할 수 있어요</h3>' +
-              '<p>설치하면 홈 화면 아이콘으로 <b>주소창 없이</b> 바로 열립니다. ' +
-              '용량은 거의 차지하지 않습니다.</p>' +
-              '<button class="sheet-btn" id="sheet-act">앱 설치하기</button>';
-
-    } else {
-      // iOS이거나, 설치 이벤트가 아직 안 온 경우 → 수동 안내
-      mode = 'manual';
-      html += '<h3>📱 앱처럼 주소창 없이 보시려면</h3>' +
-              '<p>홈 화면에 한 번만 추가해두면, 다음부터는 주소창 없이 앱처럼 열립니다.</p>' +
-              '<div class="sheet-steps">' + homeSteps() + '</div>';
+    // 앱 모드로 이미 실행 중이거나 / 사용자가 닫았거나 / 대상 화면이
+    // 아니면 숨긴다. 세 조건 중 하나라도 걸리면 렌더링 자체를 안 한다.
+    if (!allowed || isStandalone() || isDismissed()) {
+      wrap.classList.remove('show');
+      wrap.innerHTML = '';
+      return;
     }
 
-    card.innerHTML = html;
-    sheet.classList.add('show');
+    var html;
+    if (isInApp) {
+      var appName = isKakao ? '카카오톡' :
+                    isNaver ? '네이버' :
+                    isLine  ? '라인' :
+                    isInsta ? '인스타그램' : '앱';
+      html =
+        '<div class="am-card">' +
+          '<button class="am-close" aria-label="닫기">✕</button>' +
+          '<div class="am-title">📱 주소창 없이 앱처럼 쓰시려면</div>' +
+          '<div class="am-desc">지금은 ' + appName + ' 안의 브라우저로 열려 있어 주소가 보입니다. ' +
+            '아래 버튼으로 기본 브라우저에서 연 뒤, 다시 안내되는 <b>홈 화면에 추가</b>를 눌러주세요. ' +
+            '한 번만 해두면 다음부터는 주소창 없이 바로 열립니다.</div>' +
+          '<button class="am-btn" id="am-escape">🌐 기본 브라우저로 열기</button>' +
+        '</div>';
+    } else {
+      html =
+        '<div class="am-slim">' +
+          '<button class="am-close" aria-label="닫기">✕</button>' +
+          '<div class="am-title">📱 앱처럼 주소창 없이 쓰려면</div>' +
+          '<div class="am-desc">홈 화면에 한 번만 추가해두면, 다음부터는 주소창 없이 앱처럼 바로 열립니다.</div>' +
+          '<div class="am-steps">' + homeScreenSteps() + '</div>' +
+        '</div>';
+    }
 
-    card.querySelector('.sheet-close').addEventListener('click', function () {
+    wrap.innerHTML = html;
+    wrap.classList.add('show');
+
+    var closeBtn = wrap.querySelector('.am-close');
+    if (closeBtn) closeBtn.addEventListener('click', function () {
       setDismissed();
-      hideSheet();
+      wrap.classList.remove('show');
+      wrap.innerHTML = '';
     });
 
-    var act = card.querySelector('#sheet-act');
-    if (act) act.addEventListener('click', function () {
-      if (mode === 'escape') {
-        escapeInApp();
-      } else if (mode === 'install' && deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function () {
-          deferredPrompt = null;
-          hideSheet();
-        });
-      }
-    });
+    var escBtn = wrap.querySelector('#am-escape');
+    if (escBtn) escBtn.addEventListener('click', escapeInApp);
   }
 
-  // ── 8. 서비스워커 등록 (PWA 설치 조건) ───────────────────────
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('../sw.js').catch(function () {});
-    });
+  // ── 초기화 ────────────────────────────────────────────────────
+  function init() {
+    // 래퍼 안에서 열렸으면 래퍼가 안내를 담당하므로 여기선 아무것도 안 함
+    if (IS_EMBEDDED === true || IS_EMBEDDED === 'true') return;
+    // 앱 모드면 서버 호출조차 낭비이므로 즉시 종료
+    if (isStandalone()) return;
+
+    // 인앱브라우저 이탈 딥링크에 쓸 최상위 URL을 서버에서 받아둔다.
+    // (조용히 실패해도 배너 자체는 정상 노출되어야 하므로 UI를 막지 않는다)
+    if (isInApp) {
+      try {
+        google.script.run
+          .withSuccessHandler(function (u) { topUrl = u || ''; })
+          .withFailureHandler(function () { topUrl = ''; })
+          .getWebAppUrl();
+      } catch (e) {}
+    }
+
+    render(document.querySelector('.screen.active') ?
+           document.querySelector('.screen.active').id : 's-home');
   }
+
+  return { init: init, render: render };
 })();
+
+// go()에서 호출하는 전역 훅
+function refreshAppModeBar(screenId) { AppMode.render(screenId); }
+
+AppMode.init();
 </script>
 </body>
 </html>
