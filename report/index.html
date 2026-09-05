@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -88,7 +89,7 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);
 <body>
 
 <div id="frame-wrap">
-  <iframe id="app-frame" title="학습 리포트" allow="clipboard-write"></iframe>
+  <iframe id="app-frame" title="학습 리포트" allow="clipboard-write" referrerpolicy="no-referrer"></iframe>
 </div>
 
 <div id="boot">
@@ -109,7 +110,7 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);
    Apps Script 편집기 → 배포 → 배포 관리 → 웹 앱 URL 을 복사해서 붙여넣기.
    반드시 /exec 로 끝나야 합니다. (/dev 는 본인만 접속 가능하므로 안 됩니다)
    ══════════════════════════════════════════════════════════════════ */
-var EXEC_URL = 'https://script.google.com/macros/s/여기에_본인_배포ID/exec';
+var EXEC_URL = 'https://script.google.com/macros/s/AKfycbwCnweksHq84HwqJlmFrLhzw24Y76kdm8rSrl5LGGG6ZbQY8Md2QLkulzCCbc20VrTF/exec';
 
 /* ── 이 래퍼가 감싸는 화면 ──
    'student' → 학생 응시 화면 (index)
