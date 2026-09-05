@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<title>학습 리포트</title>
+
+<!-- ══ PWA 필수 3종 중 ①: 매니페스트 ══ -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- ══ iOS 전용 (iOS는 매니페스트를 무시하고 아래 메타태그를 봄) ══ -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="학습 리포트">
+<link rel="apple-touch-icon" href="./icon-192.png">
+
+<!-- 안드로이드 상태바 색 -->
+<meta name="theme-color" content="#24374A">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   ⚙ 조정용 변수 — 여기 숫자 하나만 바꾸면 됩니다
+   ══════════════════════════════════════════════════════════════════
+   --gs-crop : Apps Script가 강제로 붙이는 회색 안내줄
+               ("이 애플리케이션은 Google Apps Script 사용자가 만들었습니다")
+               의 높이. 이만큼 iframe을 위로 밀어올려서 잘라냅니다.
+
+               • 회색 줄이 아직 조금 보이면  → 숫자를 키우세요 (예: 56px)
+               • 앱 내용의 윗부분이 잘리면    → 숫자를 줄이세요 (예: 38px)
+               • 46px 는 대부분의 안드로이드 폰에서 맞는 시작값입니다
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --gs-crop: 46px;
+  --brand: #3E5C76;
+  --bg: #F3F3F1;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;
+  -webkit-text-size-adjust:100%}
+
+/* ── 앱 화면(iframe) ────────────────────────────────────────────── */
+/* 컨테이너는 화면에 딱 맞추고 overflow:hidden 으로 잘라내는 틀 역할.
+   iframe 은 컨테이너보다 --gs-crop 만큼 더 크게 만들어 위로 밀어올린다.
+   결과적으로 구글 회색 안내줄만 화면 밖으로 밀려나 보이지 않게 된다. */
+#frame-wrap{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;background:var(--bg)}
+#app-frame{position:absolute;left:0;
+  top:calc(-1 * var(--gs-crop));
+  width:100%;
+  height:calc(100% + var(--gs-crop));
+  border:0;display:block;background:var(--bg)}
+
+/* ── 로딩 ───────────────────────────────────────────────────────── */
+#boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--bg);z-index:50;transition:opacity .3s;gap:14px}
+#boot.gone{opacity:0;pointer-events:none}
+.spin{width:38px;height:38px;border:3px solid #E3E6E9;border-top-color:var(--brand);border-radius:50%;
+  animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#boot .msg{font-size:13px;color:#7D6B73;font-weight:600}
+#boot .fallback{display:none;margin-top:6px}
+#boot .fallback a{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;
+  padding:12px 20px;border-radius:10px;font-size:14px;font-weight:700}
+#boot .fallback p{font-size:12px;color:#A8949C;margin-bottom:10px;text-align:center;line-height:1.5}
+
+/* ── 하단 안내 시트 (설치 유도 / 인앱브라우저 탈출) ─────────────── */
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  transform:translateY(120%);transition:transform .28s ease}
+#sheet.show{transform:translateY(0)}
+.sheet-card{max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:16px 16px 14px;
+  box-shadow:0 -2px 24px rgba(46,34,41,.22);position:relative}
+.sheet-card h3{font-size:14px;font-weight:800;color:#2E2229;margin-bottom:5px;padding-right:26px;line-height:1.45}
+.sheet-card p{font-size:12px;color:#7D6B73;line-height:1.6;margin-bottom:11px}
+.sheet-steps{font-size:12.5px;font-weight:700;color:#7A5F16;background:#FFF8E1;border:1.5px solid #F3E3B3;
+  border-radius:10px;padding:9px 11px;line-height:1.55}
+.sheet-btn{display:block;width:100%;min-height:46px;background:var(--brand);color:#fff;border:none;
+  border-radius:11px;font-size:14.5px;font-weight:800;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.sheet-btn:active{transform:scale(.98)}
+.sheet-close{position:absolute;top:6px;right:6px;width:34px;height:34px;display:flex;align-items:center;
+  justify-content:center;background:none;border:none;font-size:16px;color:#A8949C;cursor:pointer;
+  font-family:inherit;-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body>
+
+<div id="frame-wrap">
+  <iframe id="app-frame" title="학습 리포트" allow="clipboard-write"></iframe>
+</div>
+
+<div id="boot">
+  <div class="spin"></div>
+  <div class="msg">불러오는 중…</div>
+  <div class="fallback" id="boot-fallback">
+    <p>화면이 계속 뜨지 않으면<br>아래 버튼으로 바로 열어주세요.</p>
+    <a id="boot-direct" href="#">바로 열기</a>
+  </div>
+</div>
+
+<div id="sheet"><div class="sheet-card" id="sheet-card"></div></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   ⚙ 설정 — 여기 딱 한 줄만 본인 것으로 바꾸면 됩니다
+   ══════════════════════════════════════════════════════════════════
+   Apps Script 편집기 → 배포 → 배포 관리 → 웹 앱 URL 을 복사해서 붙여넣기.
+   반드시 /exec 로 끝나야 합니다. (/dev 는 본인만 접속 가능하므로 안 됩니다)
+   ══════════════════════════════════════════════════════════════════ */
+var EXEC_URL = 'https://script.google.com/macros/s/여기에_본인_배포ID/exec';
+
+/* ── 이 래퍼가 감싸는 화면 ──
+   'student' → 학생 응시 화면 (index)
+   'report'  → 학부모 리포트 화면 (report)  ← 이 파일은 리포트용입니다   */
+var VIEW = 'report';
+
+// ══════════════════════════════════════════════════════════════════
+//  아래부터는 수정할 필요 없습니다
+// ══════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  var DISMISS_KEY = 'sgw_wrap_dismiss_' + VIEW + '_v1';
+
+  var ua        = navigator.userAgent || '';
+  var isKakao   = /KAKAOTALK/i.test(ua);
+  var isLine    = /\bLine\//i.test(ua);
+  var isNaver   = /NAVER\(inapp/i.test(ua);
+  var isInsta   = /Instagram/i.test(ua);
+  var isFB      = /FBAN|FBAV|FB_IAB/i.test(ua);
+  var isInApp   = isKakao || isLine || isNaver || isInsta || isFB;
+
+  var isIOS     = /iPhone|iPad|iPod/i.test(ua) ||
+                  (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  var isSamsung = /SamsungBrowser/i.test(ua);
+
+  // ── 1. iframe 주소 조립 ──────────────────────────────────────
+  // app=1 을 붙여서, iframe 안쪽 앱이 "나는 지금 앱 껍데기 안에서
+  // 실행 중"임을 알 수 있게 한다. 그래야 안쪽에서 똑같은 설치 안내
+  // 배너를 또 띄우는 중복이 생기지 않는다.
+  var src = EXEC_URL + (EXEC_URL.indexOf('?') === -1 ? '?' : '&') + 'app=1';
+  if (VIEW === 'report') src += '&view=report';
+
+  var frame = document.getElementById('app-frame');
+  frame.src = src;
+
+  var direct = document.getElementById('boot-direct');
+  if (direct) direct.href = src;
+
+  // ── 2. 로딩 종료 / 실패 대비 ─────────────────────────────────
+  var booted = false;
+  function bootDone() {
+    if (booted) return;
+    booted = true;
+    var b = document.getElementById('boot');
+    b.classList.add('gone');
+    setTimeout(function () { b.style.display = 'none'; }, 350);
+    setTimeout(maybeShowSheet, 900);   // 화면 뜬 뒤에 안내 시트
+  }
+  frame.addEventListener('load', bootDone);
+
+  // 10초 안에 안 뜨면 "바로 열기" 버튼을 보여준다.
+  // (iOS의 서드파티 저장소 차단 등으로 iframe이 막히는 예외 상황 대비)
+  setTimeout(function () {
+    if (!booted) document.getElementById('boot-fallback').style.display = 'block';
+  }, 10000);
+
+  // ── 3. 앱 모드(주소창 없음) 여부 ─────────────────────────────
+  function isStandalone() {
+    try {
+      if (window.navigator.standalone === true) return true;
+      if (window.matchMedia &&
+          (window.matchMedia('(display-mode: standalone)').matches ||
+           window.matchMedia('(display-mode: fullscreen)').matches ||
+           window.matchMedia('(display-mode: minimal-ui)').matches)) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // ── 4. 닫기 기억 ─────────────────────────────────────────────
+  // 이 래퍼는 github.io 라는 고정 도메인에서 실행되므로 localStorage 가
+  // 안정적으로 유지된다. (Apps Script 쪽은 출처가 바뀌어 날아가곤 했음)
+  var memDismissed = false;
+  function isDismissed() {
+    if (memDismissed) return true;
+    try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setDismissed() {
+    memDismissed = true;
+    try { localStorage.setItem(DISMISS_KEY, '1'); } catch (e) {}
+  }
+
+  // ── 5. 인앱브라우저 탈출 ─────────────────────────────────────
+  // 래퍼는 최상위 문서이므로 location.href 를 그대로 읽을 수 있다.
+  function escapeInApp() {
+    var url = location.href;
+    if (isAndroid) {
+      var bare = url.replace(/^https?:\/\//i, '');
+      location.href = 'intent://' + bare + '#Intent;scheme=https;' +
+                      'package=com.android.chrome;' +
+                      'S.browser_fallback_url=' + encodeURIComponent(url) + ';end;';
+    } else if (isIOS && isKakao) {
+      location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+
+  // ── 6. 설치 프롬프트 (안드로이드 크롬/삼성인터넷) ────────────
+  // 매니페스트 + 서비스워커 조건을 만족하면 브라우저가 이 이벤트를 준다.
+  // 이 이벤트를 잡아뒀다가 사용자가 버튼을 누를 때 prompt() 를 띄우면
+  // "홈 화면 바로가기"가 아니라 진짜 앱(WebAPK) 설치가 실행된다.
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (booted) maybeShowSheet();
+  });
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    hideSheet();
+  });
+
+  // ── 7. 안내 시트 ─────────────────────────────────────────────
+  var sheet = document.getElementById('sheet');
+  var card  = document.getElementById('sheet-card');
+
+  function hideSheet() { sheet.classList.remove('show'); }
+
+  function homeSteps() {
+    if (isIOS)     return '공유 버튼 <b>⬆︎</b> → <b>홈 화면에 추가</b> → <b>추가</b>';
+    if (isSamsung) return '메뉴 <b>≡</b> → <b>현재 페이지 추가</b> → <b>홈 화면</b>';
+    if (isAndroid) return '메뉴 <b>⋮</b> → <b>홈 화면에 추가</b>';
+    return '브라우저 메뉴 → <b>홈 화면에 추가</b>';
+  }
+
+  function maybeShowSheet() {
+    // 이미 앱 모드로 실행 중이면 목적 달성 → 아무것도 띄우지 않는다
+    if (isStandalone() || isDismissed()) return;
+
+    var html = '<button class="sheet-close" aria-label="닫기">✕</button>';
+    var mode;
+
+    if (isInApp) {
+      // 인앱브라우저는 홈 화면 추가 자체가 불가능 → 먼저 탈출부터
+      var appName = isKakao ? '카카오톡' : isNaver ? '네이버' :
+                    isLine  ? '라인'     : isInsta ? '인스타그램' : '앱';
+      mode = 'escape';
+      html += '<h3>📱 주소창 없이 앱처럼 보시려면</h3>' +
+              '<p>지금은 ' + appName + ' 안의 브라우저라 주소가 보입니다. ' +
+              '아래 버튼으로 기본 브라우저에서 연 뒤, 안내되는 대로 한 번만 설치해두시면 ' +
+              '다음부터 주소창 없이 바로 열립니다.</p>' +
+              '<button class="sheet-btn" id="sheet-act">🌐 기본 브라우저로 열기</button>';
+
+    } else if (deferredPrompt) {
+      // 진짜 앱 설치가 가능한 상태 (안드로이드)
+      mode = 'install';
+      html += '<h3>📲 앱으로 설치할 수 있어요</h3>' +
+              '<p>설치하면 홈 화면 아이콘으로 <b>주소창 없이</b> 바로 열립니다. ' +
+              '용량은 거의 차지하지 않습니다.</p>' +
+              '<button class="sheet-btn" id="sheet-act">앱 설치하기</button>';
+
+    } else {
+      // iOS이거나, 설치 이벤트가 아직 안 온 경우 → 수동 안내
+      mode = 'manual';
+      html += '<h3>📱 앱처럼 주소창 없이 보시려면</h3>' +
+              '<p>홈 화면에 한 번만 추가해두면, 다음부터는 주소창 없이 앱처럼 열립니다.</p>' +
+              '<div class="sheet-steps">' + homeSteps() + '</div>';
+    }
+
+    card.innerHTML = html;
+    sheet.classList.add('show');
+
+    card.querySelector('.sheet-close').addEventListener('click', function () {
+      setDismissed();
+      hideSheet();
+    });
+
+    var act = card.querySelector('#sheet-act');
+    if (act) act.addEventListener('click', function () {
+      if (mode === 'escape') {
+        escapeInApp();
+      } else if (mode === 'install' && deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function () {
+          deferredPrompt = null;
+          hideSheet();
+        });
+      }
+    });
+  }
+
+  // ── 8. 서비스워커 등록 (PWA 설치 조건) ───────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('../sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
