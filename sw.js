@@ -17,17 +17,13 @@
 var CACHE = 'sgw-shell-v1';
 
 // 앱 껍데기 파일만. Apps Script 주소는 절대 넣지 않습니다.
+// (report는 별도 sw.js로 관할이 분리돼 있으므로 여기 넣지 않는다)
 var SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  './report/',
-  './report/index.html',
-  './report/manifest.json',
-  './report/icon-192.png',
-  './report/icon-512.png'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', function (e) {

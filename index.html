@@ -324,7 +324,11 @@ var VIEW = 'student';
   // ── 8. 서비스워커 등록 (PWA 설치 조건) ───────────────────────
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./sw.js').catch(function () {});
+      // scope를 명시적으로 './'(=/homework/)로 고정.
+      // 이렇게 하지 않으면, report 쪽에서 같은 sw.js를 등록할 때
+      // 관할 범위가 겹쳐서 두 앱이 시스템에 하나로 뒤섞이는 문제가
+      // 생길 수 있다(실제로 한 번 발생했던 문제).
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () {});
     });
   }
 })();
