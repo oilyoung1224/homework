@@ -59,6 +59,11 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
 
+  // report/ 이하는 별도 앱(학습 리포트)의 영역이므로 절대 건드리지 않는다.
+  // 경로상 학생용 scope(/homework/)가 /homework/report/ 를 포함하기 때문에,
+  // 여기서 명시적으로 제외하지 않으면 두 앱의 캐시가 섞일 수 있다.
+  if (new URL(req.url).pathname.indexOf('/report/') !== -1) return;
+
   // 앱 껍데기: 네트워크 우선, 실패하면 캐시 (오프라인에서도 최소한 열림)
   e.respondWith(
     fetch(req)

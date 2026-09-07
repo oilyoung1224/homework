@@ -1,9 +1,10 @@
 {
+  "id": "/homework/",
   "name": "숙검완료",
   "short_name": "숙검완료",
   "description": "숙제 검사 완료 · 자동 알림 시스템",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/homework/",
+  "scope": "/homework/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FAF4F6",
@@ -11,19 +12,19 @@
   "lang": "ko",
   "icons": [
     {
-      "src": "./icon-192.png",
+      "src": "/homework/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/homework/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icon-512.png",
+      "src": "/homework/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
