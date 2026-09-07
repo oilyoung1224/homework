@@ -314,7 +314,12 @@ var VIEW = 'report';
   // ── 8. 서비스워커 등록 (PWA 설치 조건) ───────────────────────
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('../sw.js').catch(function () {});
+      // 학생용과 완전히 분리된, report 폴더 안의 독립된 sw.js를 등록.
+      // scope를 명시적으로 './'(=/homework/report/)로 고정해서,
+      // 학생용(/homework/)과 관할 범위가 절대 겹치지 않게 한다.
+      // (예전엔 최상위 sw.js를 같이 썼는데, 관할 범위가 겹치면서
+      //  두 앱이 시스템에 하나로 뒤섞이는 문제가 실제로 발생했었다.)
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function () {});
     });
   }
 })();
